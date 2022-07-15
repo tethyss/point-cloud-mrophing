@@ -32,7 +32,7 @@ def read_data(plot=1):
     return full_data[:, :27], landmarkpoints[:, :27]
 
 
-def Variogram_Omni_Advanced(BM, M_D, Lag, NSteps, LagTol, NumVar=25):
+def variogram(BM, M_D, Lag, NSteps, LagTol, NumVar=25):
     # print(BM)
     FnMat = np.zeros((NSteps + 1, int(2 + NumVar * (NumVar + 1) / 2)))
     for i_Step in range(NSteps):
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     print("Computing distances")
     M_Dist = ot.dist(landmarks[:, 0:2], landmarks[:, 0:2], metric="euclidean")
     print("Computing variogram")
-    FnMat = Variogram_Omni_Advanced(landmarks, M_Dist, Lag=1, NSteps=20, LagTol=1, NumVar=25)
+    FnMat = variogram(landmarks, M_Dist, Lag=1, NSteps=20, LagTol=1, NumVar=25)
     np.savetxt(fname="./VarExp.txt", X=FnMat, fmt='%.4f', delimiter='\t')
     plot_variogram(FnMat)
     plot_cross_variogram(FnMat)
@@ -155,6 +155,6 @@ if __name__ == "__main__":
     plt.title('OT matrix with samples')
     plt.axis('square')
     plt.show()
-    V_mf = Variogram_Omni_Advanced(mf, M_Dist, Lag=4, NSteps=50, LagTol=4, NumVar=25)
+    V_mf = variogram(mf, M_Dist, Lag=4, NSteps=50, LagTol=4, NumVar=25)
     np.savetxt(fname="./VarExp_mf.txt", X=V_mf, fmt='%.4f', delimiter='\t')
     plot_cross_variogram(V_mf)
