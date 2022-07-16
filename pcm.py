@@ -64,11 +64,11 @@ def plot_variogram(variogram):
                  '25': 'Zr'}
     fig, axs = plt.subplots(5, 5, figsize=(17, 14))
     plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
-    for col in range(5):
-        for row in range(5):
-            axs[row, col].set_ylim(0.0, 1)
-            axs[row, col].set_xlim(0.0, 20)
-            axs[row, col].set_xticks((0, 5, 10, 15, 20))
+    # for col in range(5):
+    #     for row in range(5):
+    #         axs[row, col].set_ylim(0.0, 1)
+    #         axs[row, col].set_xlim(0.0, 20)
+    #         axs[row, col].set_xticks((0, 5, 10, 15, 20))
     for i in range(25):
         axs[int(i % 5), int(i / 5)].plot(variogram[:, 0], variogram[:, int((51 - i) * i / 2 + 2)], linestyle='--',
                                          marker='x', markersize=0.5, linewidth=0.8,
@@ -80,13 +80,14 @@ def plot_variogram(variogram):
 
 
 def plot_cross_variogram(variogram):
+
     fig, axs = plt.subplots(4, 4, figsize=(17, 14))
     plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
-    for col in range(4):
-        for row in range(4):
-            axs[row, col].set_ylim(-0.5, 0.5)
-            axs[row, col].set_xlim(0.0, 20)
-            axs[row, col].set_xticks((0, 5, 10, 15, 20))
+    # for col in range(4):
+    #     for row in range(4):
+    #         axs[row, col].set_ylim(-0.5, 0.5)
+    #         axs[row, col].set_xlim(0.0, 20)
+    #         axs[row, col].set_xticks((0, 5, 10, 15, 20))
     for i in range(16):
         axs[int(i % 4), int(i / 4)].plot(variogram[:, 0], variogram[:, i + 8], linestyle='--', marker='x',
                                          markersize=0.5, linewidth=0.8,
@@ -135,7 +136,7 @@ if __name__ == "__main__":
     print("Computing distances")
     M_Dist = ot.dist(landmarks[:, 0:2], landmarks[:, 0:2], metric="euclidean")
     print("Computing variogram")
-    FnMat = variogram(landmarks, M_Dist, Lag=1, NSteps=20, LagTol=1, NumVar=25)
+    FnMat = variogram(landmarks, M_Dist, Lag=4, NSteps=50, LagTol=4, NumVar=25)
     np.savetxt(fname="./VarExp.txt", X=FnMat, fmt='%.4f', delimiter='\t')
     plot_variogram(FnMat)
     plot_cross_variogram(FnMat)
