@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 import ot
+import math
 
 
 def read_data(plot=1):
@@ -28,11 +29,11 @@ def read_data(plot=1):
         plt.scatter(nongranite[:, 0], nongranite[:, 1], s=200, marker='x', label="non-deposits")
         plt.legend(fontsize=20, )
         plt.show()
-    landmarkpoints = np.vstack((deposits, nongranite, random_point))
-    return full_data[:, :27], landmarkpoints[:, :27]
+    landmark_points = np.vstack((deposits, nongranite, random_point))
+    return full_data[:, :27], landmark_points[:, :27]
 
 
-def variogram(BM, M_D, Lag, NSteps, LagTol, NumVar=25):
+def variogram_calculation(BM, M_D, Lag, NSteps, LagTol, NumVar):
     # print(BM)
     FnMat = np.zeros((NSteps + 1, int(2 + NumVar * (NumVar + 1) / 2)))
     for i_Step in range(NSteps):
@@ -55,13 +56,6 @@ def variogram(BM, M_D, Lag, NSteps, LagTol, NumVar=25):
 
 
 def plot_variogram(variogram):
-    DictNames = {'1': 'Ag', '2': 'Al', '3': 'Au', '4': 'B',
-                 '5': 'Ba', '6': 'Be', '7': 'Bi', '8': 'Ca',
-                 '9': 'Co', '10': 'F', '11': 'Fe', '12': 'K',
-                 '13': 'La', '14': 'Li', '15': 'Mg', '16': 'Mn',
-                 '17': 'Mo', '18': 'Nb', '19': 'P', '20': 'Sn',
-                 '21': 'Sr', '22': 'Ti', '23': 'V', '24': 'Y',
-                 '25': 'Zr'}
     fig, axs = plt.subplots(5, 5, figsize=(17, 14))
     plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
     # for col in range(5):
@@ -81,13 +75,8 @@ def plot_variogram(variogram):
 
 def plot_cross_variogram(variogram):
 
-    fig, axs = plt.subplots(4, 4, figsize=(17, 14))
+    fig, axs = plt.subplots(25, 25, figsize=(17, 14))
     plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
-    # for col in range(4):
-    #     for row in range(4):
-    #         axs[row, col].set_ylim(-0.5, 0.5)
-    #         axs[row, col].set_xlim(0.0, 20)
-    #         axs[row, col].set_xticks((0, 5, 10, 15, 20))
     for i in range(16):
         axs[int(i % 4), int(i / 4)].plot(variogram[:, 0], variogram[:, i + 8], linestyle='--', marker='x',
                                          markersize=0.5, linewidth=0.8,
@@ -96,7 +85,7 @@ def plot_cross_variogram(variogram):
     plt.show()
 
 
-def transport(lm, show):
+def transport(lm):
     x = np.random.normal(0, 2, len(lm[1]))
     for e in range(len(lm)-1):
         x = np.vstack((x, np.random.normal(0, 2, len(lm[1]))))
@@ -104,7 +93,7 @@ def transport(lm, show):
     M = ot.dist(lm, x)
     G0 = ot.emd(a, b, M)
     if show == 1:
-        plot2D_samples_mat(lm, x, G0, c=[.5, .5, 1])
+        plot2d_samples_mat(lm, x, G0, c=[.5, .5, 1])
         plt.plot(lm[:, 7], lm[:, 11], '+b', label='Source samples')
         plt.plot(x[:, 7], x[:, 11], 'xr', label='Target samples')
         plt.legend(loc=0)
@@ -115,7 +104,7 @@ def transport(lm, show):
     return x
 
 
-def plot2D_samples_mat(xs, xt, G, thr=1e-8, **kwargs):
+def plot2d_samples_mat(xs, xt, G, thr=1e-8, **kwargs):
     if ('color' not in kwargs) and ('c' not in kwargs):
         kwargs['color'] = 'k'
     mx = G.max()
@@ -132,11 +121,20 @@ def plot2D_samples_mat(xs, xt, G, thr=1e-8, **kwargs):
 
 
 if __name__ == "__main__":
+    DictNames = {'1': 'Ag', '2': 'Al', '3': 'Au', '4': 'B',
+                 '5': 'Ba', '6': 'Be', '7': 'Bi', '8': 'Ca',
+                 '9': 'Co', '10': 'F', '11': 'Fe', '12': 'K',
+                 '13': 'La', '14': 'Li', '15': 'Mg', '16': 'Mn',
+                 '17': 'Mo', '18': 'Nb', '19': 'P', '20': 'Sn',
+                 '21': 'Sr', '22': 'Ti', '23': 'V', '24': 'Y',
+                 '25': 'Zr'}
     data, landmarks = read_data(plot=0)
+    print("Computing distances for exhausted")
+    D_Dist = ot.dist(data[:, 0:2].astype(int), data[:, 0:2].astype(int), metric="euclidean")
     print("Computing distances")
     M_Dist = ot.dist(landmarks[:, 0:2], landmarks[:, 0:2], metric="euclidean")
     print("Computing variogram")
-    FnMat = variogram(landmarks, M_Dist, Lag=4, NSteps=50, LagTol=4, NumVar=25)
+    FnMat = variogram_calculation(landmarks, M_Dist, Lag=4, NSteps=50, LagTol=4, NumVar=25)
     np.savetxt(fname="./VarExp.txt", X=FnMat, fmt='%.4f', delimiter='\t')
     plot_variogram(FnMat)
     plot_cross_variogram(FnMat)
@@ -147,7 +145,7 @@ if __name__ == "__main__":
             show = 1
         else:
             show = 0
-        mf[:, 2:27] += transport(landmarks[:, 2:], show=show)
+        mf[:, 2:27] += transport(landmarks[:, 2:])
     mf = mf / 10000
     plt.plot([landmarks[:, 9], mf[:, 9]], [landmarks[:, 13], mf[:, 13]], c=[.5, .5, 1], alpha=0.2)
     plt.plot(landmarks[:, 9], landmarks[:, 13], '+b', label='Source samples')
@@ -156,6 +154,6 @@ if __name__ == "__main__":
     plt.title('OT matrix with samples')
     plt.axis('square')
     plt.show()
-    V_mf = variogram(mf, M_Dist, Lag=4, NSteps=50, LagTol=4, NumVar=25)
+    V_mf = variogram_calculation(mf, M_Dist, Lag=4, NSteps=60, LagTol=4, NumVar=25)
     np.savetxt(fname="./VarExp_mf.txt", X=V_mf, fmt='%.4f', delimiter='\t')
     plot_cross_variogram(V_mf)
