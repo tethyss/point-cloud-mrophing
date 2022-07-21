@@ -54,7 +54,7 @@ def exhaust_variogram(rawdata):
     for gr in range(len(group)):
         for point in group[gr]:
             g[int(point[0]), int(point[1])] = gr
-    plt.imshow(g, origin = 'lower')
+    plt.imshow(g, origin='lower')
     plt.show()
 
     h = np.zeros((len(group), int(25 * 26 / 2)))
@@ -77,10 +77,23 @@ def exhaust_variogram(rawdata):
     return h_p
 
 
-def convert_CDF(func):
-    data_sorted = np.sort(func)
-    p = 1. * np.arange(len(data)) / (len(data) - 1)
-    data_sorted
+def convert_to_cdf(data1):
+    p = 1. * np.arange(len(data1)) / (len(data1) - 1)
+    for ele in range(len(data1[1])-2):
+        data_sorted = data1[:, ele + 2]
+        data_sorted = np.hstack(
+            (data_sorted.reshape([len(data1), 1]), np.arange(len(data1)).reshape([len(data1), 1])))
+        idex = np.argsort(data_sorted, axis=0)
+        data_sorted = data_sorted[idex[:, 0]]
+        data_sorted[:, [0, 1]] = data_sorted[:, [1, 0]]
+        data_sorted = np.hstack((data_sorted, p.reshape([len(data1), 1])))
+        idex = np.argsort(data_sorted, axis=0)
+        data_sorted = data_sorted[idex[:, 0]]
+        data1[:, ele + 2] = data_sorted[:, 2]
+    plt.scatter(data1[:, 3], data1[:, 4])
+    plt.show()
+    return data1
+
 
 def variogram_calculation(BM, M_D, Lag, NSteps, LagTol, NumVar):
     # print(BM)
@@ -176,8 +189,10 @@ if __name__ == "__main__":
                  '17': 'Mo', '18': 'Nb', '19': 'P', '20': 'Sn',
                  '21': 'Sr', '22': 'Ti', '23': 'V', '24': 'Y',
                  '25': 'Zr'}
-    data, landmarks = read_data(plot = 0)
-    FnMat = exhaust_variogram(data[:,2:])
+    data, landmarks = read_data(plot=0)
+    temp = np.copy(landmarks)
+    landmarks_cdf = convert_to_cdf(temp)
+    #FnMat = exhaust_variogram(data[:,2:])
     # print("Computing distances")
     # M_Dist = np.zeros([112225, 112225])
     # for i in range(335):
@@ -185,9 +200,9 @@ if __name__ == "__main__":
     #                                                          metric = "euclidean")
     # print("Computing variogram")
     # FnMat = variogram_calculation(data, M_Dist, Lag = 4, NSteps = 50, LagTol = 4, NumVar = 25)
-    np.savetxt(fname = "./VarExp.txt", X = FnMat, fmt = '%.4f', delimiter = '\t')
-    plot_variogram(FnMat)
-    plot_cross_variogram(FnMat)
+    # np.savetxt(fname = "./VarExp.txt", X = FnMat, fmt = '%.4f', delimiter = '\t')
+    #plot_variogram(FnMat)
+    #plot_cross_variogram(FnMat)
     mf = np.zeros((200, 27))
     mf[:, 0:2] = landmarks[:, 0:2]
     for epoch in range(1000):
@@ -196,10 +211,12 @@ if __name__ == "__main__":
         else:
             show = 0
         mf[:, 2:27] += transport(landmarks[:, 2:])
-    mf = mf / 10000
-    plt.plot([landmarks[:, 9], mf[:, 9]], [landmarks[:, 13], mf[:, 13]], c = [.5, .5, 1], alpha = 0.2)
-    plt.plot(landmarks[:, 9], landmarks[:, 13], '+b', label = 'Source samples')
-    plt.plot(mf[:, 9], mf[:, 13], 'xr', label = 'Target samples')
+    mf[:,2:27] = mf[:,2:27] / 10000
+    temp=np.copy(mf)
+    mf_cdf = convert_to_cdf(temp)
+    plt.plot([landmarks_cdf[:, 16], mf_cdf[:, 16]], [landmarks_cdf[:, 13], mf_cdf[:, 13]], c = [.5, .5, 1], alpha = 0.2)
+    plt.plot(landmarks_cdf[:, 16], landmarks_cdf[:, 13], '+b', label = 'Source samples')
+    plt.plot(mf_cdf[:, 16], mf_cdf[:, 13], 'xr', label = 'Target samples')
     plt.legend(loc = 0)
     plt.title('OT matrix with samples')
     plt.axis('square')
