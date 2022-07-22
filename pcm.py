@@ -3,31 +3,32 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 import ot
+from scipy.interpolate import griddata
 import math
 
 
 def read_data(plot=1):
-    full_data = pd.read_csv('./data.csv', header = 0)
+    full_data = pd.read_csv('./data.csv', header=0)
     full_data = full_data.values
     full_data[:, 2:27] = StandardScaler().fit_transform(full_data[:, 2:27])
-    deposits = pd.read_csv('./deposit.csv', header = 0)
+    deposits = pd.read_csv('./deposit.csv', header=0)
     deposits = deposits.values
     deposits = full_data[(deposits[:, 0].astype(int) - 1) * 335 + deposits[:, 1].astype(int)]
     # generate random point
     nongranite = np.argwhere(full_data[:, 29] == 0)
     nongranite = np.reshape(full_data[nongranite], [len(nongranite), 30])
-    rand = np.random.randint(len(nongranite), size = 49)
+    rand = np.random.randint(len(nongranite), size=49)
     nongranite = nongranite[rand]
-    rand = np.random.randint(len(full_data), size = 102)
+    rand = np.random.randint(len(full_data), size=102)
     random_point = full_data[rand]
     if plot == 1:
-        plt.figure(figsize = (15, 15))
+        plt.figure(figsize=(15, 15))
         data_show = np.reshape(full_data[:, 29], [335, 335])
-        plt.imshow(data_show[::-1], origin = 'lower', cmap = 'Pastel2')
-        plt.scatter(random_point[:, 0], random_point[:, 1], c = 'b', s = 200, marker = '1', label = "random points")
-        plt.scatter(deposits[:, 0], deposits[:, 1], c = 'g', s = 200, marker = '^', label = "deposits")
-        plt.scatter(nongranite[:, 0], nongranite[:, 1], s = 200, marker = 'x', label = "non-deposits")
-        plt.legend(fontsize = 20, )
+        plt.imshow(data_show[::-1], origin='lower', cmap='Pastel2')
+        plt.scatter(random_point[:, 0], random_point[:, 1], c='b', s=200, marker='1', label="random points")
+        plt.scatter(deposits[:, 0], deposits[:, 1], c='g', s=200, marker='^', label="deposits")
+        plt.scatter(nongranite[:, 0], nongranite[:, 1], s=200, marker='x', label="non-deposits")
+        plt.legend(fontsize=20, )
         plt.show()
     landmark_points = np.vstack((deposits, nongranite, random_point))
     return full_data[:, :27], landmark_points[:, :27]
@@ -36,8 +37,8 @@ def read_data(plot=1):
 def exhaust_variogram(rawdata):
     rawdata = np.reshape(rawdata, [335, 335, 25])
     rawdata = rawdata[::-1]
-    lag = 4
-    steps = 50
+    lag = 2
+    steps = 40
     length = int(lag * steps * 2)
     width = int(length / 2)
     dist = np.zeros((width, length))
@@ -67,8 +68,9 @@ def exhaust_variogram(rawdata):
                     for m in range(25):
                         for n in range(m, 25):
                             h[j, p] += (rawdata[int(i / 335), int(i % 335), m] - rawdata[
-                                int(i / 335) - width + ind[1], int(i % 335) + ind[0], m]) * (rawdata[int(i / 335), int(i % 335), n] - rawdata[
-                                                     int(i / 335) - width + ind[1], int(i % 335) + ind[0], n])
+                                int(i / 335) - width + ind[1], int(i % 335) + ind[0], m]) * (
+                                               rawdata[int(i / 335), int(i % 335), n] - rawdata[
+                                           int(i / 335) - width + ind[1], int(i % 335) + ind[0], n])
                             p += 1
                     count[j] += 1
         if i % 1000 == 0:
@@ -78,8 +80,11 @@ def exhaust_variogram(rawdata):
 
 
 def convert_to_cdf(data1):
+    if show == 1:
+        plt.figure(1)
+        plt.scatter(data1[:, 12], data1[:, 17])
     p = 1. * np.arange(len(data1)) / (len(data1) - 1)
-    for ele in range(len(data1[1])-2):
+    for ele in range(len(data1[1]) - 2):
         data_sorted = data1[:, ele + 2]
         data_sorted = np.hstack(
             (data_sorted.reshape([len(data1), 1]), np.arange(len(data1)).reshape([len(data1), 1])))
@@ -90,8 +95,10 @@ def convert_to_cdf(data1):
         idex = np.argsort(data_sorted, axis=0)
         data_sorted = data_sorted[idex[:, 0]]
         data1[:, ele + 2] = data_sorted[:, 2]
-    plt.scatter(data1[:, 3], data1[:, 4])
-    plt.show()
+    if show == 1:
+        plt.figure(2)
+        plt.scatter(data1[:, 12], data1[:, 17])
+        plt.show()
     return data1
 
 
@@ -118,30 +125,30 @@ def variogram_calculation(BM, M_D, Lag, NSteps, LagTol, NumVar):
 
 
 def plot_variogram(variogram):
-    fig, axs = plt.subplots(5, 5, figsize = (17, 14))
-    plt.subplots_adjust(left = 0.05, bottom = 0.05, right = 0.95, top = 0.95, wspace = 0.5, hspace = 0.3)
+    fig, axs = plt.subplots(5, 5, figsize=(17, 14))
+    plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
     # for col in range(5):
     #     for row in range(5):
     #         axs[row, col].set_ylim(0.0, 1)
     #         axs[row, col].set_xlim(0.0, 20)
     #         axs[row, col].set_xticks((0, 5, 10, 15, 20))
     for i in range(25):
-        axs[int(i % 5), int(i / 5)].plot(variogram[:, 0], variogram[:, int((51 - i) * i / 2 + 2)], linestyle = '--',
-                                         marker = 'x', markersize = 0.5, linewidth = 0.8,
-                                         color = 'green', label = 'Samples')
+        axs[int(i % 5), int(i / 5)].plot(variogram[:, 0], variogram[:, int((51 - i) * i / 2 + 2)], linestyle='--',
+                                         marker='x', markersize=0.5, linewidth=0.8,
+                                         color='green', label='Samples')
         axs[int(i % 5), int(i / 5)].set_xlabel('Distance')
-        axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (DictNames[str(i + 1)]), labelpad = 0)
+        axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (DictNames[str(i + 1)]), labelpad=0)
         # axs[int(i % 5), int(i / 5)].legend(loc=4, fontsize=10)
     plt.show()
 
 
 def plot_cross_variogram(variogram):
-    fig, axs = plt.subplots(25, 25, figsize = (17, 14))
-    plt.subplots_adjust(left = 0.05, bottom = 0.05, right = 0.95, top = 0.95, wspace = 0.5, hspace = 0.3)
+    fig, axs = plt.subplots(25, 25, figsize=(17, 14))
+    plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
     for i in range(16):
-        axs[int(i % 4), int(i / 4)].plot(variogram[:, 0], variogram[:, i + 155], linestyle = '--', marker = 'x',
-                                         markersize = 0.5, linewidth = 0.8,
-                                         color = 'green', label = 'Samples')
+        axs[int(i % 4), int(i / 4)].plot(variogram[:, 0], variogram[:, i + 155], linestyle='--', marker='x',
+                                         markersize=0.5, linewidth=0.8,
+                                         color='green', label='Samples')
         axs[int(i % 4), int(i / 4)].set_xlabel('Distance')
     plt.show()
 
@@ -153,15 +160,17 @@ def transport(lm):
     a, b = np.ones((len(lm),)) / len(lm), np.ones((len(lm),)) / len(lm)
     M = ot.dist(lm, x)
     G0 = ot.emd(a, b, M)
+    x = x[np.nonzero(G0)[1]]
     if show == 1:
-        plot2d_samples_mat(lm, x, G0, c = [.5, .5, 1])
-        plt.plot(lm[:, 7], lm[:, 11], '+b', label = 'Source samples')
-        plt.plot(x[:, 7], x[:, 11], 'xr', label = 'Target samples')
-        plt.legend(loc = 0)
+        x_cdf = convert_to_cdf(np.copy(x))
+        lm_cdf = convert_to_cdf(np.copy(lm))
+        plt.plot([lm_cdf[:, 10], x_cdf[:, 10]], [lm_cdf[:, 15], x_cdf[:, 15]], c=[.5, .5, 1], alpha=0.2)
+        plt.plot(lm_cdf[:, 10], lm_cdf[:, 15], '+b', label='Source samples')
+        plt.plot(x_cdf[:, 10], x_cdf[:, 15], 'xr', label='Target samples')
+        plt.legend(loc=0)
         plt.title('OT matrix with samples')
         plt.axis('square')
         plt.show()
-    x = x[np.nonzero(G0)[1]]
     return x
 
 
@@ -177,8 +186,19 @@ def plot2d_samples_mat(xs, xt, G, thr=1e-8, **kwargs):
     for i in range(xs.shape[0]):
         for j in range(xt.shape[0]):
             if G[i, j] / mx > thr:
-                plt.plot([xs[i, 7], xt[j, 7]], [xs[i, 11], xt[j, 11]],
-                         alpha = G[i, j] / mx * scale, **kwargs)
+                plt.plot([xs[i, 10], xt[j, 10]], [xs[i, 15], xt[j, 15]],
+                         alpha=G[i, j] / mx * scale, **kwargs)
+
+
+def interp(rawdata):
+    grid_x, grid_y = np.mgrid[1:336:1, 1:336:1]
+    for interp_c in range(25):
+        grid_z0 = griddata(rawdata[:, 0:2], rawdata[:, interp_c + 2], (grid_x, grid_y), method='linear')
+        plt.figure(1)
+        plt.imshow(grid_z0.T, origin='lower')
+        plt.figure(2)
+        plt.imshow(np.reshape(data[:, interp_c + 2], [335, 335]))
+        plt.show()
 
 
 if __name__ == "__main__":
@@ -189,20 +209,20 @@ if __name__ == "__main__":
                  '17': 'Mo', '18': 'Nb', '19': 'P', '20': 'Sn',
                  '21': 'Sr', '22': 'Ti', '23': 'V', '24': 'Y',
                  '25': 'Zr'}
+    show = 1
     data, landmarks = read_data(plot=0)
-    temp = np.copy(landmarks)
-    landmarks_cdf = convert_to_cdf(temp)
-    #FnMat = exhaust_variogram(data[:,2:])
+    landmarks_cdf = convert_to_cdf(np.copy(landmarks))
+    # FnMat = exhaust_variogram(data[:,2:])
     # print("Computing distances")
     # M_Dist = np.zeros([112225, 112225])
     # for i in range(335):
     #     M_Dist[:, int(335 * i):int(335 * (i + 1))] = ot.dist(data[:, 0:2], data[int(335 * i):int(335 * (i + 1)), 0:2],
-    #                                                          metric = "euclidean")
+    #                                                          metric="euclidean")
     # print("Computing variogram")
-    # FnMat = variogram_calculation(data, M_Dist, Lag = 4, NSteps = 50, LagTol = 4, NumVar = 25)
-    # np.savetxt(fname = "./VarExp.txt", X = FnMat, fmt = '%.4f', delimiter = '\t')
-    #plot_variogram(FnMat)
-    #plot_cross_variogram(FnMat)
+    # FnMat = variogram_calculation(data, M_Dist, Lag=4, NSteps=20, LagTol=4, NumVar=25)
+    # np.savetxt(fname="./VarExp.txt", X=FnMat, fmt='%.4f', delimiter='\t')
+    # plot_variogram(FnMat)
+    # plot_cross_variogram(FnMat)
     mf = np.zeros((200, 27))
     mf[:, 0:2] = landmarks[:, 0:2]
     for epoch in range(1000):
@@ -210,17 +230,18 @@ if __name__ == "__main__":
             show = 1
         else:
             show = 0
-        mf[:, 2:27] += transport(landmarks[:, 2:])
-    mf[:,2:27] = mf[:,2:27] / 10000
-    temp=np.copy(mf)
-    mf_cdf = convert_to_cdf(temp)
-    plt.plot([landmarks_cdf[:, 16], mf_cdf[:, 16]], [landmarks_cdf[:, 13], mf_cdf[:, 13]], c = [.5, .5, 1], alpha = 0.2)
-    plt.plot(landmarks_cdf[:, 16], landmarks_cdf[:, 13], '+b', label = 'Source samples')
-    plt.plot(mf_cdf[:, 16], mf_cdf[:, 13], 'xr', label = 'Target samples')
-    plt.legend(loc = 0)
-    plt.title('OT matrix with samples')
+        mf[:, 2:27] += transport(np.copy(landmarks[:, 2:]))
+    mf[:, 2:27] = mf[:, 2:27] / 1000
+    mf_cdf = convert_to_cdf(np.copy(mf))
+    plt.plot([landmarks_cdf[:, 12], mf_cdf[:, 12]], [landmarks_cdf[:, 17], mf_cdf[:, 17]], c=[.5, .5, 1], alpha=0.2)
+    plt.plot(landmarks_cdf[:, 12], landmarks_cdf[:, 17], '+b', label='Source samples')
+    plt.plot(mf_cdf[:, 12], mf_cdf[:, 17], 'xr', label='Target samples')
+    plt.legend(loc=0)
+    plt.title('OT matrix with samples-avg')
     plt.axis('square')
     plt.show()
-    V_mf = variogram_calculation(mf, M_Dist, Lag = 4, NSteps = 60, LagTol = 4, NumVar = 25)
-    np.savetxt(fname = "./VarExp_mf.txt", X = V_mf, fmt = '%.4f', delimiter = '\t')
-    plot_cross_variogram(V_mf)
+    # M_Dist = ot.dist(mf_cdf[:, 0:2], mf_cdf[:, 0:2], metric="euclidean")
+    # V_mf = variogram_calculation(mf, M_Dist, Lag=4, NSteps=20, LagTol=4, NumVar=25)
+    # np.savetxt(fname="./VarExp_mf.txt", X=V_mf, fmt='%.4f', delimiter='\t')
+    # plot_cross_variogram(V_mf)
+    #interp(mf)
