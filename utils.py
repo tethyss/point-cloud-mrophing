@@ -104,7 +104,6 @@ def convert_to_cdf(data1, if_show=0):
 
 def variogram_calculation(data, dist_matrix, lag, steps, tol, channels):
     # variogram structure: 0: Average distance; 1: counts in lag.
-    # print(BM)
     variogram = np.zeros((steps + 1, int(2 + channels * (channels + 1) / 2)))
     for i_Step in range(steps):
         print("i_Step :", i_Step + 1)
@@ -113,12 +112,11 @@ def variogram_calculation(data, dist_matrix, lag, steps, tol, channels):
             x_j, y_j = x_pos[j], y_pos[j]
             variogram[i_Step + 1, 1] += 1
             variogram[i_Step + 1, 0] += dist_matrix[x_j, y_j]
-            tPos = 2
-            for v1 in range(channels):
-                for v2 in range(v1, channels):
-                    variogram[i_Step + 1, tPos] += (data[x_j, v1 + 2] - data[y_j, v1 + 2]) * (
-                            data[x_j, v2 + 2] - data[y_j, v2 + 2])
-                    tPos += 1
+            dif_j = data[x_j, 2:]-data[y_j, 2:]
+            pos = 2
+            for c in range(channels):
+                variogram[i_Step + 1, int(pos):int(pos+len(dif_j[c:]))] += dif_j[c] * dif_j[c:]
+                pos += len(dif_j[c:])
         variogram[i_Step + 1, 2:] = variogram[i_Step + 1, 2:] / (2 * variogram[i_Step + 1, 1])
         variogram[i_Step + 1, 0] = variogram[i_Step + 1, 0] / variogram[i_Step + 1, 1]  # Average distance
         variogram[i_Step + 1, 1] = variogram[i_Step + 1, 1] / 2  # Without duplicates
