@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 import ot
-from scipy.interpolate import griddata
 import math
 
 
@@ -157,12 +156,12 @@ def transport(lm, if_show=0):
     for e in range(len(lm) - 1):
         x = np.vstack((x, np.random.normal(0, 2, len(lm[1]))))
     a, b = np.ones((len(lm),)) / len(lm), np.ones((len(lm),)) / len(lm)
-    dist_matrix = ot.dist(lm, x)
+    x_cdf = convert_to_cdf(np.copy(x))
+    lm_cdf = convert_to_cdf(np.copy(lm))
+    dist_matrix = ot.dist(lm_cdf, x_cdf)
     pair = ot.emd(a, b, dist_matrix)
-    x = x[np.nonzero(pair)[1]]
+    x_cdf = x_cdf[np.nonzero(pair)[1]]
     if if_show == 1:
-        x_cdf = convert_to_cdf(np.copy(x))
-        lm_cdf = convert_to_cdf(np.copy(lm))
         plt.plot([lm_cdf[:, 10], x_cdf[:, 10]], [lm_cdf[:, 15], x_cdf[:, 15]], c=[.5, .5, 1], alpha=0.2)
         plt.plot(lm_cdf[:, 10], lm_cdf[:, 15], '+b', label='Source samples')
         plt.plot(x_cdf[:, 10], x_cdf[:, 15], 'xr', label='Target samples')
@@ -171,20 +170,4 @@ def transport(lm, if_show=0):
         plt.axis('square')
         plt.show()
     return x
-
-
-def plot2d_samples_mat(xs, xt, G, thr=1e-8, **kwargs):
-    if ('color' not in kwargs) and ('c' not in kwargs):
-        kwargs['color'] = 'k'
-    mx = G.max()
-    if 'alpha' in kwargs:
-        scale = kwargs['alpha']
-        del kwargs['alpha']
-    else:
-        scale = 1
-    for i in range(xs.shape[0]):
-        for j in range(xt.shape[0]):
-            if G[i, j] / mx > thr:
-                plt.plot([xs[i, 10], xt[j, 10]], [xs[i, 15], xt[j, 15]],
-                         alpha=G[i, j] / mx * scale, **kwargs)
 

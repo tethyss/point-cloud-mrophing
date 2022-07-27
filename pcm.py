@@ -15,7 +15,7 @@ if __name__ == "__main__":
     landmarks_cdf = convert_to_cdf(np.copy(landmarks))
     # FnMat = exhaust_variogram(data[:,2:])
     print("Computing distances")
-    M_Dist = np.zeros([112225, 112225])
+    M_Dist = np.empty([112225, 112225])
     for i in range(335):
         M_Dist[:, int(335 * i):int(335 * (i + 1))] = ot.dist(data[:, 0:2], data[int(335 * i):int(335 * (i + 1)), 0:2],
                                                              metric="euclidean")
