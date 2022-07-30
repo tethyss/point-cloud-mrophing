@@ -78,13 +78,16 @@ def exhaust_variogram(rawdata):
     return h_p
 
 
-def convert_to_cdf(data1, if_show=0):
+def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
+    if show_config is None:
+        show_config = [10, 15]
     if if_show == 1:
         plt.figure(1)
-        plt.scatter(data1[:, 12], data1[:, 17])
+        plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s=10, c=color)  # '#FF1F5B'
+        plt.axis('square')
     p = 1. * np.arange(len(data1)) / (len(data1) - 1)
-    for ele in range(len(data1[1]) - 2):
-        data_sorted = data1[:, ele + 2]
+    for ele in range(len(data1[1])):
+        data_sorted = data1[:, ele]
         data_sorted = np.hstack(
             (data_sorted.reshape([len(data1), 1]), np.arange(len(data1)).reshape([len(data1), 1])))
         idex = np.argsort(data_sorted, axis=0)
@@ -93,10 +96,11 @@ def convert_to_cdf(data1, if_show=0):
         data_sorted = np.hstack((data_sorted, p.reshape([len(data1), 1])))
         idex = np.argsort(data_sorted, axis=0)
         data_sorted = data_sorted[idex[:, 0]]
-        data1[:, ele + 2] = data_sorted[:, 2]
+        data1[:, ele] = data_sorted[:, 2]
     if if_show == 1:
         plt.figure(2)
-        plt.scatter(data1[:, 12], data1[:, 17])
+        plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s=10, c=color)
+        plt.axis('square')
         plt.show()
     return data1
 
@@ -151,23 +155,24 @@ def plot_cross_variogram(variogram):
     plt.show()
 
 
-def transport(lm, if_show=0):
-    x = np.random.normal(0, 2, len(lm[1]))
-    for e in range(len(lm) - 1):
-        x = np.vstack((x, np.random.normal(0, 2, len(lm[1]))))
-    a, b = np.ones((len(lm),)) / len(lm), np.ones((len(lm),)) / len(lm)
-    x_cdf = convert_to_cdf(np.copy(x))
-    lm_cdf = convert_to_cdf(np.copy(lm))
+def transport(lm_cdf, if_show=0, show_config=None):
+    if show_config is None:
+        show_config = [10, 15]
+    x = np.random.normal(0, 1, len(lm_cdf[1]))
+    for e in range(len(lm_cdf) - 1):
+        x = np.vstack((x, np.random.normal(0, 1, len(lm_cdf[1]))))
+    a, b = np.ones((len(lm_cdf),)) / len(lm_cdf), np.ones((len(lm_cdf),)) / len(lm_cdf)
+    x_cdf = convert_to_cdf(np.copy(x), if_show=if_show,  color='r')
     dist_matrix = ot.dist(lm_cdf, x_cdf)
     pair = ot.emd(a, b, dist_matrix)
     x_cdf = x_cdf[np.nonzero(pair)[1]]
     if if_show == 1:
-        plt.plot([lm_cdf[:, 10], x_cdf[:, 10]], [lm_cdf[:, 15], x_cdf[:, 15]], c=[.5, .5, 1], alpha=0.2)
-        plt.plot(lm_cdf[:, 10], lm_cdf[:, 15], '+b', label='Source samples')
-        plt.plot(x_cdf[:, 10], x_cdf[:, 15], 'xr', label='Target samples')
+        plt.plot([lm_cdf[:, show_config[0]], x_cdf[:, show_config[0]]], [lm_cdf[:, show_config[1]], x_cdf[:, show_config[1]]], c=[.5, .5, 1], alpha=0.2)
+        plt.plot(lm_cdf[:, show_config[0]], lm_cdf[:, show_config[1]], '+', c='b', label='Source samples')
+        plt.plot(x_cdf[:, show_config[0]], x_cdf[:, show_config[1]], 'x', c='r', label='Target samples')
         plt.legend(loc=0)
         plt.title('OT matrix with samples')
         plt.axis('square')
         plt.show()
-    return x
+    return x_cdf
 
