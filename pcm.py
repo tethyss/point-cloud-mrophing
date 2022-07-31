@@ -25,23 +25,6 @@ if __name__ == "__main__":
     np.savetxt(fname="./VarExp.txt", X=FnMat, fmt='%.4f', delimiter='\t')
     # plot_variogram(FnMat)
     # plot_cross_variogram(FnMat)
-    # mf = np.zeros((200, 27))
-    # mf[:, 0:2] = landmarks[:, 0:2]
-    # for epoch in range(1000):
-    #     if epoch % 200 == 0:
-    #         show = 1
-    #     else:
-    #         show = 0
-    #     mf[:, 2:27] += transport(np.copy(landmarks[:, 2:]))
-    # mf[:, 2:27] = mf[:, 2:27] / 1000
-    # mf_cdf = convert_to_cdf(np.copy(mf))
-    # plt.plot([landmarks_cdf[:, 12], mf_cdf[:, 12]], [landmarks_cdf[:, 17], mf_cdf[:, 17]], c=[.5, .5, 1], alpha=0.2)
-    # plt.plot(landmarks_cdf[:, 12], landmarks_cdf[:, 17], '+b', label='Source samples')
-    # plt.plot(mf_cdf[:, 12], mf_cdf[:, 17], 'xr', label='Target samples')
-    # plt.legend(loc=0)
-    # plt.title('OT matrix with samples-avg')
-    # plt.axis('square')
-    # plt.show()
     # # M_Dist = ot.dist(mf_cdf[:, 0:2], mf_cdf[:, 0:2], metric="euclidean")
     # # V_mf = variogram_calculation(mf, M_Dist, Lag=4, NSteps=20, LagTol=4, NumVar=25)
     # # np.savetxt(fname="./VarExp_mf.txt", X=V_mf, fmt='%.4f', delimiter='\t')
