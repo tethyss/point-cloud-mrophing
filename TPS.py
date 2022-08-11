@@ -1,28 +1,41 @@
 import cv2
 from utils import *
+import random
 
 
-def thin_plate_transform(x, y, offw, offh, imshape, shift_l=-0.05, shift_r=0.05, num_points=5, offsetMatrix=False):
-    rand_p = np.random.choice(x.size, num_points, replace = False)
-    movingPoints = np.zeros((1, num_points, 2), dtype = 'float32')
-    fixedPoints = np.zeros((1, num_points, 2), dtype = 'float32')
+# First read in img
+img = cv2.imread('liv.png', cv2.IMREAD_COLOR)
+img = cv2.resize(img, (180, 32))
+# N pair of reference control points
+N = 5
+points = []
+dx = int(180 / (N - 1))
+for i in range(2 * N):  # 0-9
+    points.append((dx * i, 4))
+    points.append((dx * i, 36))
+# Widen a circle around
+img = cv2.copyMakeBorder(img, 4, 4, 0, 0, cv2.BORDER_REPLICATE)
+# Draw a green circle
+for point in points:
+    cv2.circle(img, point, 1, (0, 255, 0), 2)
+tps = cv2.createThinPlateSplineShapeTransformer()
 
-    movingPoints[:, :, 0] = x[rand_p]
-    movingPoints[:, :, 1] = y[rand_p]
-    fixedPoints[:, :, 0] = movingPoints[:, :, 0] + offw * (np.random.rand(num_points) * (shift_r - shift_l) + shift_l)
-    fixedPoints[:, :, 1] = movingPoints[:, :, 1] + offh * (np.random.rand(num_points) * (shift_r - shift_l) + shift_l)
+sourceshape = np.array(points, np.int32)
+sourceshape = sourceshape.reshape(1, -1, 2)
+matches = []
+for i in range(1, N + 1):
+    matches.append(cv2.DMatch(i, i, 0))
 
-    tps = cv2.createThinPlateSplineShapeTransformer()
-    good_matches = [cv2.DMatch(i, i, 0) for i in range(num_points)]
-    tps.estimateTransformation(movingPoints, fixedPoints, good_matches)
-
-    imh, imw = imshape
-    x, y = np.meshgrid(np.arange(imw), np.arange(imh))
-    x, y = x.astype('float32'), y.astype('float32')
-    newxy = tps.applyTransformation(np.dstack((x.ravel(), y.ravel())))[1]
-    newxy = newxy.reshape([imh, imw, 2])
-
-    if offsetMatrix:
-        return newxy, newxy - np.dstack((x, y))
-    else:
-        return newxy
+# Start random changes
+newpoints = []
+PADDINGSIZ = 10
+for i in range(4*N):
+    nx = points[i][0] + random.randint(0, PADDINGSIZ) - PADDINGSIZ / 2
+    ny = points[i][1] + random.randint(0, PADDINGSIZ) - PADDINGSIZ / 2
+    newpoints.append((nx, ny))
+print(points, newpoints)
+targetshape = np.array(newpoints, np.int32)
+targetshape = targetshape.reshape(1, -1, 2)
+tps.estimateTransformation(sourceshape, targetshape, matches)
+img = tps.warpImage(img)
+cv2.imwrite('tmp.png', img)
