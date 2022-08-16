@@ -156,8 +156,6 @@ def plot_cross_variogram(variogram):
 
 
 def transport(lm_cdf, if_show=0, show_config=None):
-    if show_config is None:
-        show_config = [10, 15]
     x = np.random.normal(0, 1, len(lm_cdf[1]))
     for e in range(len(lm_cdf) - 1):
         x = np.vstack((x, np.random.normal(0, 1, len(lm_cdf[1]))))
