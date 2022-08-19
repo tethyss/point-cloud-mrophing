@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
+from scipy.interpolate import Rbf
 import ot
 import math
 
@@ -83,6 +84,7 @@ def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
         show_config = [10, 15]
     if if_show == 1:
         plt.figure(1)
+        plt.title('raw data')
         plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s=10, c=color)  # '#FF1F5B'
         plt.axis('square')
     p = 1. * np.arange(len(data1)) / (len(data1) - 1)
@@ -99,6 +101,7 @@ def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
         data1[:, ele] = data_sorted[:, 2]
     if if_show == 1:
         plt.figure(2)
+        plt.title('CDF')
         plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s=10, c=color)
         plt.axis('square')
         plt.show()
@@ -115,10 +118,10 @@ def variogram_calculation(data, dist_matrix, lag, steps, tol, channels):
             x_j, y_j = x_pos[j], y_pos[j]
             variogram[i_Step + 1, 1] += 1
             variogram[i_Step + 1, 0] += dist_matrix[x_j, y_j]
-            dif_j = data[x_j, 2:]-data[y_j, 2:]
+            dif_j = data[x_j, 2:] - data[y_j, 2:]
             pos = 2
             for c in range(channels):
-                variogram[i_Step + 1, int(pos):int(pos+len(dif_j[c:]))] += dif_j[c] * dif_j[c:]
+                variogram[i_Step + 1, int(pos):int(pos + len(dif_j[c:]))] += dif_j[c] * dif_j[c:]
                 pos += len(dif_j[c:])
         variogram[i_Step + 1, 2:] = variogram[i_Step + 1, 2:] / (2 * variogram[i_Step + 1, 1])
         variogram[i_Step + 1, 0] = variogram[i_Step + 1, 0] / variogram[i_Step + 1, 1]  # Average distance
@@ -126,8 +129,16 @@ def variogram_calculation(data, dist_matrix, lag, steps, tol, channels):
     return variogram
 
 
-def plot_variogram(variogram, names):
+def plot_variogram(variogram):
+    names = {'1': 'Ag', '2': 'Al', '3': 'Au', '4': 'B',
+                 '5': 'Ba', '6': 'Be', '7': 'Bi', '8': 'Ca',
+                 '9': 'Co', '10': 'F', '11': 'Fe', '12': 'K',
+                 '13': 'La', '14': 'Li', '15': 'Mg', '16': 'Mn',
+                 '17': 'Mo', '18': 'Nb', '19': 'P', '20': 'Sn',
+                 '21': 'Sr', '22': 'Ti', '23': 'V', '24': 'Y',
+                 '25': 'Zr'}
     fig, axs = plt.subplots(5, 5, figsize=(17, 14))
+    plt.suptitle('Direct variogram', size=20)
     plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
     # for col in range(5):
     #     for row in range(5):
@@ -139,19 +150,22 @@ def plot_variogram(variogram, names):
                                          marker='x', markersize=0.5, linewidth=0.8,
                                          color='green', label='Samples')
         axs[int(i % 5), int(i / 5)].set_xlabel('Distance')
-        axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (names[str(i + 1)]), labelpad=0)
+        axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (names[str(i + 1)]), labelpad=0, size=20)
         # axs[int(i % 5), int(i / 5)].legend(loc=4, fontsize=10)
     plt.show()
 
 
 def plot_cross_variogram(variogram):
-    fig, axs = plt.subplots(25, 25, figsize=(17, 14))
-    plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
-    for i in range(16):
-        axs[int(i % 4), int(i / 4)].plot(variogram[:, 0], variogram[:, i + 155], linestyle='--', marker='x',
-                                         markersize=0.5, linewidth=0.8,
-                                         color='green', label='Samples')
-        axs[int(i % 4), int(i / 4)].set_xlabel('Distance')
+    var = np.zeros((25, 25))
+    for ele in range(25):
+        head = int(2 + (25 + 25 - ele) * (ele + 1) / 2 - 25 + ele)
+        for j in range(head, head + 25 - ele):
+            var[j - head + ele, ele] = np.sum(variogram[:, j] ** 2)
+    plt.imshow(var, cmap='Reds')
+    plt.title('Cross variogram', size=15)
+    plt.xlabel('Elements')
+    plt.ylabel('Elements')
+    plt.colorbar(label='Sum of square')
     plt.show()
 
 
@@ -165,12 +179,98 @@ def transport(lm_cdf, if_show=0, show_config=None):
     pair = ot.emd(a, b, dist_matrix)
     x_cdf = x_cdf[np.nonzero(pair)[1]]
     if if_show == 1:
-        plt.plot([lm_cdf[:, show_config[0]], x_cdf[:, show_config[0]]], [lm_cdf[:, show_config[1]], x_cdf[:, show_config[1]]], c=[.5, .5, 1], alpha=0.2)
+        plt.plot([lm_cdf[:, show_config[0]], x_cdf[:, show_config[0]]],
+                 [lm_cdf[:, show_config[1]], x_cdf[:, show_config[1]]], c=[.5, .5, 1], alpha=0.2)
         plt.plot(lm_cdf[:, show_config[0]], lm_cdf[:, show_config[1]], '+', c='b', label='Source samples')
         plt.plot(x_cdf[:, show_config[0]], x_cdf[:, show_config[1]], 'x', c='r', label='Target samples')
         plt.legend(loc=0)
         plt.title('OT matrix with samples')
         plt.axis('square')
         plt.show()
-    return x_cdf
+    return x, x_cdf
 
+
+# def Gsim(data):
+#     def gridpath(xdim, ydim):
+#         '''
+#         Input:  (xdim) iterable describing the start, stop, and no. steps
+#                 (ydim) iterable describing the start, stop, and no. steps
+#         Output: (path) path through the 2D grid, a list of lists
+#                        each element has an index, an address in the gird,
+#                        and an address in space
+#         '''
+#         # dim = ( start, stop, steps )
+#         xrng = np.linspace(*xdim)
+#         yrng = np.linspace(*ydim)
+#         # total number of steps in the random path
+#         N = xdim[2] * ydim[2]
+#         # an array of indices
+#         idx = np.arange(N)
+#         # shuffle the indices
+#         random.shuffle(idx)
+#         # create a list for the path
+#         path = list()
+#         # create a counter
+#         t = 0
+#         # for each cell in the x dimension
+#         for i in range(xdim[2]):
+#             # for each cell in the y dimension
+#             for j in range(ydim[2]):
+#                 # record a shuffled index value, idx[t],
+#                 # an integer cell address (i,j), and a
+#                 # physical address in feet, ( xrng[i], yrng[j] )
+#                 path.append([idx[t], (i, j), (xrng[i], yrng[j])])
+#                 # increment t for the shuffled indices, idx
+#             t += 1
+#         # sort the shuffled indices
+#         # thereby shuffling the path
+#         path.sort()
+#         return path
+#
+#     def sgs(data, model, hs, bw, xs, ys=None, pad=0.0):
+#         '''
+#         Input:  (data)   <N,3> NumPy array of data
+#                 (hs)     NumPy array of distances
+#                 (bw)     bandwidth of the semivariogram
+#                 (xs)     number of cells in the x dimension
+#                 (ys)     number of cells in the y dimension
+#         Output: (M)      <xsteps,ysteps> NumPy array of data
+#                          representing the simulated distribution
+#                          of the variable of interest
+#         '''
+#         # check for meshsize in second dimension
+#         if ys == None:
+#             ys = xs
+#         # create path
+#         xdim = (data[:, 0].min() - pad, data[:, 0].max() + pad, xs)
+#         ydim = (data[:, 1].min() - pad, data[:, 1].max() + pad, ys)
+#         path = gridpath(xdim, ydim)
+#         # create array for the output
+#         M = np.zeros((xs, ys))
+#         # for each cell in the grid..
+#         for step in path:
+#             # grab the index, the cell address, and the physical location
+#             idx, cell, loc = step
+#             # perform the kriging
+#             kv = k.krige(data, model, hs, bw, loc, 4)
+#             # add the kriging estimate to the output
+#             M[cell[0], cell[1]] = kv
+#             # add the kriging estimate to a spatial location
+#             newdata = [loc[0], loc[1], kv]
+#             # add this new point to the data used for kriging
+#             data = np.vstack((data, newdata))
+#         return M
+#
+#     return data
+#
+#
+# def tps(data, mf, landmarks):
+#
+#     tps_function = Rbf(landmarks[:, 0], landmarks[:, 1], mf_cdf[:, 0], function='thin_plate')
+#     exhaust_mf = tps_function(np.linspace(1, 335, 335), np.linspace(1, 335, 335))
+#     return data
+#
+#
+# def de_cdf(data):
+#     pass
+#     return data
