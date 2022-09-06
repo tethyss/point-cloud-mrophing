@@ -23,11 +23,16 @@ for epoch in range(epochs):
         show_config = 0
     mf_raw, mf_cdf = transport(np.copy(landmarks_cdf), if_show=show_config, show_config=show)
     mf_ave += mf_cdf
-    # # Sequential gaussian simulation
-    # mf_raw = np.hstack((landmarks[:, 0:2], mf_raw))  # add location
-    # mf_exhaust = Gsim(mf_raw)
-    # # Convert into CDF
-    # mf_exhaust_cdf = convert_to_cdf(np.copy(mf_exhaust[:, 2:]), show_config=show, if_show=0)
+
+    # Sequential gaussian simulation
+    mf_cdf = np.hstack((landmarks[:, 0:2], mf_cdf))  # add location
+    mf_exhaust = sgs(mf_cdf, if_show=show_config)
+    mf_exhaust = np.hstack((data[:, 0:2], mf_exhaust))
+    columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg', 'Mn',
+               'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
+    mf_exhaust = pd.DataFrame(mf_exhaust, columns = columns)
+    for i in range(25):
+        vario_mf = GSLIB.gamv_2d(mf_exhaust,'X','Y',columns[i], 50, 4000, azi = 60.0, atol = 10.0, bstand = 1)
     # # Match with real data
     # landmarks_exhaust_cdf = tps(mf_exhaust_cdf, mf_cdf, landmarks_cdf)
     # # Convert back into real values

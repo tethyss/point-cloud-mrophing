@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
-from scipy.interpolate import Rbf
+import geostatspy.GSLIB as GSLIB
+import random
 import ot
 import math
 
@@ -28,7 +29,7 @@ def read_data(plot=1):
         plt.scatter(random_point[:, 0], random_point[:, 1], c='b', s=200, marker='1', label="random points")
         plt.scatter(deposits[:, 0], deposits[:, 1], c='g', s=200, marker='^', label="deposits")
         plt.scatter(nongranite[:, 0], nongranite[:, 1], s=200, marker='x', label="non-deposits")
-        plt.legend(fontsize=20, )
+        plt.legend(fontsize=20)
         plt.show()
     landmark_points = np.vstack((deposits, nongranite, random_point))
     return full_data[:, :27], landmark_points[:, :27]
@@ -190,78 +191,27 @@ def transport(lm_cdf, if_show=0, show_config=None):
     return x, x_cdf
 
 
-# def Gsim(data):
-#     def gridpath(xdim, ydim):
-#         '''
-#         Input:  (xdim) iterable describing the start, stop, and no. steps
-#                 (ydim) iterable describing the start, stop, and no. steps
-#         Output: (path) path through the 2D grid, a list of lists
-#                        each element has an index, an address in the gird,
-#                        and an address in space
-#         '''
-#         # dim = ( start, stop, steps )
-#         xrng = np.linspace(*xdim)
-#         yrng = np.linspace(*ydim)
-#         # total number of steps in the random path
-#         N = xdim[2] * ydim[2]
-#         # an array of indices
-#         idx = np.arange(N)
-#         # shuffle the indices
-#         random.shuffle(idx)
-#         # create a list for the path
-#         path = list()
-#         # create a counter
-#         t = 0
-#         # for each cell in the x dimension
-#         for i in range(xdim[2]):
-#             # for each cell in the y dimension
-#             for j in range(ydim[2]):
-#                 # record a shuffled index value, idx[t],
-#                 # an integer cell address (i,j), and a
-#                 # physical address in feet, ( xrng[i], yrng[j] )
-#                 path.append([idx[t], (i, j), (xrng[i], yrng[j])])
-#                 # increment t for the shuffled indices, idx
-#             t += 1
-#         # sort the shuffled indices
-#         # thereby shuffling the path
-#         path.sort()
-#         return path
-#
-#     def sgs(data, model, hs, bw, xs, ys=None, pad=0.0):
-#         '''
-#         Input:  (data)   <N,3> NumPy array of data
-#                 (hs)     NumPy array of distances
-#                 (bw)     bandwidth of the semivariogram
-#                 (xs)     number of cells in the x dimension
-#                 (ys)     number of cells in the y dimension
-#         Output: (M)      <xsteps,ysteps> NumPy array of data
-#                          representing the simulated distribution
-#                          of the variable of interest
-#         '''
-#         # check for meshsize in second dimension
-#         if ys == None:
-#             ys = xs
-#         # create path
-#         xdim = (data[:, 0].min() - pad, data[:, 0].max() + pad, xs)
-#         ydim = (data[:, 1].min() - pad, data[:, 1].max() + pad, ys)
-#         path = gridpath(xdim, ydim)
-#         # create array for the output
-#         M = np.zeros((xs, ys))
-#         # for each cell in the grid..
-#         for step in path:
-#             # grab the index, the cell address, and the physical location
-#             idx, cell, loc = step
-#             # perform the kriging
-#             kv = k.krige(data, model, hs, bw, loc, 4)
-#             # add the kriging estimate to the output
-#             M[cell[0], cell[1]] = kv
-#             # add the kriging estimate to a spatial location
-#             newdata = [loc[0], loc[1], kv]
-#             # add this new point to the data used for kriging
-#             data = np.vstack((data, newdata))
-#         return M
-#
-#     return data
+def sgs(data, if_show=0):
+    columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg', 'Mn',
+               'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
+    df = pd.DataFrame(data, columns = columns)
+    vario = GSLIB.make_variogram(nug = 0.0, nst = 1, it1 = 1, cc1 = 1.0, azi1 = 60.0, hmaj1 = 100000, hmin1 = 100000)
+    result = np.empty((335*335, 25))
+    for i in range(25):
+        seed = random.randint(11111, 99999)
+        sim = GSLIB.sgsim(1, df, 'X', 'Y', columns[int(i+2)],335,335,1000,seed,vario,"simulation")
+        result[:, i] = np.reshape(sim, [335*335])
+        if i == 11:
+            if if_show == 1:
+                xmin = 0.0
+                xmax = 335000.0
+                ymin = 0.0
+                ymax = 335000.0
+                cmap = plt.cm.inferno
+                GSLIB.locpix_st(sim, xmin, xmax, ymin, ymax, 1000, 0.0, 1.0, df, 'X', 'Y', 'Fe',
+                                'Sequential Gaussian Simulation', 'X(m)', 'Y(m)', 'Fe', cmap)
+                plt.show()
+    return result
 #
 #
 # def tps(data, mf, landmarks):
