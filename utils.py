@@ -5,6 +5,7 @@ from sklearn.preprocessing import StandardScaler
 import geostatspy.GSLIB as GSLIB
 import random
 import ot
+import os
 import math
 
 
@@ -35,14 +36,12 @@ def read_data(plot=1):
     return full_data[:, :27], landmark_points[:, :27]
 
 
-def variogram_gam(data, xcol, ycol, vcol, grid, cellsize, nlag, lagdist, azi, atol, bstand):
-    if len(vcol.shape[1]) == 1:  # variogram type,1 for direct 2 for cross
-        v_type = 1
-        df_ext = pd.DataFrame({"X": data[xcol], "Y": data[ycol], "Z": data[vcol]})
-    else:
-        v_type = 2
-        df_ext = pd.DataFrame({"X": data[xcol], "Y": data[ycol], "Z1": data[vcol[0]], "Z2": data[vcol[1]]})
-    GSLIB.Dataframe2GSLIB("gam.dat", df_ext)
+def variogram_gam(data, xcol, ycol, vcol1,vcol2, grid, cellsize, nlag):
+    if not os.path.exists("gam.dat"):
+        columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg', 'Mn',
+                   'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
+        df = pd.DataFrame(data, columns = columns)
+        GSLIB.Dataframe2GSLIB("gam.dat", df)
 
     with open("gam.par", "w") as f:
         f.write("                         Parameters for GAM                                  \n")
@@ -50,29 +49,39 @@ def variogram_gam(data, xcol, ycol, vcol, grid, cellsize, nlag, lagdist, azi, at
         f.write("                                                                             \n")
         f.write("START OF PARAMETERS:                                                         \n")
         f.write("gam.dat                                 -file with data                      \n")
-        f.write("1   2   0                               -   columns for X, Y, Z coordinates  \n")
-        if v_type == 1:
-            f.write("1   3   0                           -   number of variables,col numbers  \n")
+        if vcol1 == vcol2:
+            f.write("1 " + str(vcol1) + " 0                -number of var.,col numbers   \n")
         else:
-            f.write("2   3   4                           -   number of variables,col numbers  \n")
-        f.write("-1.0e21     1.0e21                      -   trimming limits                  \n")
+            f.write("2 " + str(vcol1) + " " + str(vcol2) + "-number of var.,cols\n")
+        f.write("-1.0e21     1.0e21                      -trimming limits                     \n")
+        f.write("gam_out.out                             -file for variogram output           \n")
         f.write("1                                       -grid or realization number          \n")
-        f.write(str(grid[0]) + " 0 " + str(cellsize) + " -nx, xmn, xsiz                       \n")
-        f.write(str(grid[1]) + " 0 " + str(cellsize) + " -ny, ymn, ysiz                       \n")
+        f.write(str(grid[0]) + " 1 " + str(cellsize) + " -nx, xmn, xsiz                       \n")
+        f.write(str(grid[1]) + " 1 " + str(cellsize) + " -ny, ymn, ysiz                       \n")
+        f.write("1 0 0                                   -nz, zmn, zsiz                       \n")
         f.write("3 " + str(nlag) + "                     -number of directions, number of lags\n")
         f.write("1  0  0                                 -ixd(1),iyd(1),izd(1)                \n")
         f.write("0  1  0                                 -ixd(2),iyd(2),izd(2)                \n")
         f.write("1  1  0                                 -ixd(3),iyd(3),izd(3)                \n")
         f.write("1                                       -standardize sill? (0=no, 1=yes)     \n")
         f.write("1                                       -number of variograms                \n")
-        if v_type == 1:
-            f.write("1   1   1                           -tail var., head var., variogram type\n")
+        if vcol1 == vcol2:
+            f.write(str(vcol1) + " " + str(vcol1) + " 1    -tail var., head var., variogram type\n")
         else:
-            f.write("1   2   2                           -tail var., head var., variogram type\n")
+            f.write(str(vcol1) + " " + str(vcol2) + " 2     -tail, head, variogram type   \n")
+    print("computing variogram for" + str(vcol1) + str(vcol2))
+    os.system("gam.exe gam.par")
 
+    # with open("gam.out") as f:
+    #     next(f)  # skip the first line
+    #
+    #     for line in f:
+    #         _, l, g, n, *_ = line.split()
+    #         lag.append(float(l))
+    #         gamma.append(float(g))
+    #         npair.append(float(n))
 
-
-
+    return None
 
 
 def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
