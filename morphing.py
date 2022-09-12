@@ -6,10 +6,8 @@ show = [10, 15]  # config for show
 # read data
 data, landmarks = read_data(plot=0)
 
-# # calculate exhausted variogram
-# dist = ot.dist(data[:, 0:2], data[:, 0:2], metric="euclidean")
-# FnMat = variogram_calculation(data, dist, lag=4, steps=50, tol=4, channels=25)
-# plot_variogram(FnMat)
+# calculate exhausted variogram
+
 
 # convert landmarks to CDF
 landmarks_cdf = convert_to_cdf(np.copy(landmarks[:, 2:]), show_config=show, if_show=1)
