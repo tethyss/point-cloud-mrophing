@@ -67,18 +67,16 @@ def variogram_gam(data, xcol, ycol, vcol1,vcol2, grid, cellsize, nlag):
 
     lag = []
     gamma = []
-    npair = []
 
     with open("gam_out.out") as f:
         next(f)  # skip the first line
 
         for line in f:
-            _, l, g, n, *_ = line.split()
+            _, l, g, *_ = line.split()
             lag.append(float(l))
             gamma.append(float(g))
-            npair.append(float(n))
 
-    return lag, gamma, npair
+    return lag, gamma
 
 
 def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'

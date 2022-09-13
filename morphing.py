@@ -1,3 +1,5 @@
+import numpy as np
+
 from utils import *
 
 epochs = 2  # simulation times
@@ -7,8 +9,13 @@ show = [10, 15]  # config for show
 data, landmarks = read_data(plot=0)
 
 # calculate exhausted variogram
-lag, gamma, npair = variogram_gam(data, xcol=0, ycol=1, vcol1=16, vcol2=15, grid=[335, 335], cellsize=2, nlag=100)
-
+rawdata_variogram = []
+for v1 in range(25):
+    for v2 in range(v1, 25):
+        lag, gamma = variogram_gam(data, xcol=0, ycol=1, vcol1=int(v1+1), vcol2=int(v2+1), grid=[335, 335], cellsize=2, nlag=100)
+        rawdata_variogram.append(gamma)
+rawdata_variogram = np.hstack((lag, lag, rawdata_variogram))
+plot_variogram(rawdata_variogram)
 # convert landmarks to CDF
 landmarks_cdf = convert_to_cdf(np.copy(landmarks[:, 2:]), show_config=show, if_show=1)
 
