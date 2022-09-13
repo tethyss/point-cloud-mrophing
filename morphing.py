@@ -7,7 +7,7 @@ show = [10, 15]  # config for show
 data, landmarks = read_data(plot=0)
 
 # calculate exhausted variogram
-variogram_gam(data, xcol=0, ycol=1, vcol1=15, vcol2=15, grid=[335, 335], cellsize=1, nlag=50)
+lag, gamma, npair = variogram_gam(data, xcol=0, ycol=1, vcol1=16, vcol2=15, grid=[335, 335], cellsize=2, nlag=100)
 
 # convert landmarks to CDF
 landmarks_cdf = convert_to_cdf(np.copy(landmarks[:, 2:]), show_config=show, if_show=1)
