@@ -21,7 +21,7 @@ def read_data(plot=1):
     nongranite = np.reshape(full_data[nongranite], [len(nongranite), 30])
     rand = np.random.randint(len(nongranite), size = 49)
     nongranite = nongranite[rand]
-    rand = np.random.randint(len(full_data), size = 102)
+    rand = np.random.randint(len(full_data), size = 151)
     random_point = full_data[rand]
     if plot == 1:
         plt.figure(figsize = (15, 15))
@@ -32,11 +32,12 @@ def read_data(plot=1):
         plt.scatter(nongranite[:, 0], nongranite[:, 1], s = 200, marker = 'x', label = "non-deposits")
         plt.legend(fontsize = 20)
         plt.show()
-    landmark_points = np.vstack((deposits, nongranite, random_point))
+    #  landmark_points = np.vstack((deposits, nongranite, random_point))
+    landmark_points = np.vstack((nongranite, random_point))
     return full_data[:, :27], landmark_points[:, :27]
 
 
-def variogram_gam(data, xcol, ycol, vcol1,vcol2, grid, cellsize, nlag):
+def variogram_gam(data, vcol1, vcol2, grid, cellsize, nlag):
     if not os.path.exists("gam.dat"):
         columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg', 'Mn',
                    'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
@@ -57,13 +58,11 @@ def variogram_gam(data, xcol, ycol, vcol1,vcol2, grid, cellsize, nlag):
         f.write(str(grid[1]) + " 1 " + str(cellsize) + " -ny, ymn, ysiz                       \n")
         f.write("1 0 0                                   -nz, zmn, zsiz                       \n")
         f.write("1 " + str(nlag) + "                     -number of directions, number of lags\n")
-        f.write("1  -1  0                                 -ixd(1),iyd(1),izd(1)                \n")
+        f.write("1  0  0                                 -ixd(1),iyd(1),izd(1)               \n")
         f.write("1                                       -standardize sill? (0=no, 1=yes)     \n")
         f.write("1                                       -number of variograms                \n")
-        f.write(str(vcol1) + " " + str(vcol2) + " 2     -tail, head, variogram type   \n")
+        f.write(str(vcol1) + " " + str(vcol2) + " 2      -tail, head, variogram type          \n")
     os.system("gam.exe gam.par")
-    os.system("vargplt.exe vargplt.par")
-
 
     lag = []
     gamma = []
@@ -162,7 +161,7 @@ def plot_cross_variogram(variogram):
         for j in range(head, head + 25 - ele):
             var[j - head + ele, ele] = np.sum(variogram[:, j] ** 2)
     plt.imshow(var, cmap = 'Reds')
-    plt.title('Cross variogram', size = 15)
+    plt.title('Variance of Cross variogram', size = 15)
     plt.xlabel('Elements')
     plt.ylabel('Elements')
     plt.colorbar(label = 'Sum of square')
@@ -194,21 +193,21 @@ def sgs(data, if_show=0):
     columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg', 'Mn',
                'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
     df = pd.DataFrame(data, columns = columns)
-    vario = GSLIB.make_variogram(nug = 0.0, nst = 1, it1 = 1, cc1 = 1.0, azi1 = 60.0, hmaj1 = 100000, hmin1 = 100000)
+    vario = GSLIB.make_variogram(nug = 0.0, nst = 1, it1 = 1, cc1 = 1.0, azi1 = 0.0, hmaj1 = 100, hmin1 = 100)
     result = np.empty((335 * 335, 25))
     for i in range(25):
         seed = random.randint(11111, 99999)
-        sim = GSLIB.sgsim(1, df, 'X', 'Y', columns[int(i + 2)], 335, 335, 1000, seed, vario, "simulation")
+        sim = GSLIB.sgsim(1, df, 'X', 'Y', columns[int(i + 2)], 335, 335, 1, seed, vario, "simulation")
         result[:, i] = np.reshape(sim, [335 * 335])
-        if i == 11:
+        if i == 12:
             if if_show == 1:
                 xmin = 0.0
-                xmax = 335000.0
+                xmax = 335.0
                 ymin = 0.0
-                ymax = 335000.0
+                ymax = 335.0
                 cmap = plt.cm.inferno
-                GSLIB.locpix_st(sim, xmin, xmax, ymin, ymax, 1000, 0.0, 1.0, df, 'X', 'Y', 'Fe',
-                                'Sequential Gaussian Simulation', 'X(m)', 'Y(m)', 'Fe', cmap)
+                GSLIB.locpix_st(sim, xmin, xmax, ymin, ymax, 1, 0.0, 1.0, df, 'X', 'Y', 'K',
+                                'Sequential Gaussian Simulation', 'X(km)', 'Y(km)', 'Fe', cmap)
                 plt.show()
     return result
 #
