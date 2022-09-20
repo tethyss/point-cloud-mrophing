@@ -2,7 +2,7 @@ from utils import *
 
 epochs = 2  # simulation times
 show = [10, 15]  # config for show
-exhausted_variogram = 1
+exhausted_variogram = 0
 
 # read data
 data, landmarks = read_data(plot=0)
@@ -38,14 +38,8 @@ for epoch in range(epochs):
     mf_raw = np.hstack((landmarks[:, 0:2], mf_raw))  # add location
     mf_exhaust = sgs(mf_raw, if_show=show_config)
     mf_exhaust = np.hstack((data[:, 0:2], mf_exhaust))
-    #  logit
-    mf_logit = np.empty(mf_exhaust.shape)
-    for i in range(len(mf_exhaust[1])):
-        for idx, x in enumerate(mf_exhaust[:, i]):
-            if x != 1 and x != 0:
-                mf_logit[idx, i] = math.log(x / (1 - x))
-    plt.hist(mf_logit)
-    plt.show()
+    if os.path.exists("gam.dat"):
+        os.remove("gam.dat")
     rawdata_variogram1 = []
     for v1 in range(25):
         for v2 in range(v1, 25):
@@ -56,7 +50,7 @@ for epoch in range(epochs):
     raw_variogram1 = np.hstack((raw_variogram1, np.asarray(rawdata_variogram1).T))
     plot_variogram(raw_variogram1)
     plot_cross_variogram(raw_variogram1)
-    os.remove("gam.dat")
+
 
     # # Match with real data
     # landmarks_exhaust_cdf = tps(mf_exhaust_cdf, mf_cdf, landmarks_cdf)
@@ -78,18 +72,3 @@ for epoch in range(epochs):
 
 # check correlation
 mf_ave = mf_ave / epochs
-mf_variogram = np.hstack((landmarks[:, 0:2], mf_ave))
-dist = ot.dist(landmarks[:, 0:2], landmarks[:, 0:2], metric="euclidean")
-FnMat = variogram_calculation(mf_variogram, dist, lag=4, steps=50, tol=4, channels=25)
-plot_variogram(FnMat)
-plot_cross_variogram(FnMat)
-
-plt.plot([landmarks_cdf[:, show[0]], mf_ave[:, show[0]]], [landmarks_cdf[:, show[1]], mf_ave[:, show[1]]],
-         c=[.5, .5, 1],
-         alpha=0.2)
-plt.plot(landmarks_cdf[:, show[0]], landmarks_cdf[:, show[1]], '+', c='b', label='Source samples')
-plt.plot(mf_ave[:, show[0]], mf_ave[:, show[1]], 'x', c='r', label='Target samples')
-plt.legend(loc=0)
-plt.title('OT matrix with samples-avg')
-plt.axis('square')
-plt.show()

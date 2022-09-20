@@ -193,20 +193,20 @@ def sgs(data, if_show=0):
     columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg', 'Mn',
                'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
     df = pd.DataFrame(data, columns=columns)
-    vario = GSLIB.make_variogram(nug=0.0, nst=1, it1=1, cc1=1.0, azi1=0.0, hmaj1=100, hmin1=100)
+    vario = GSLIB.make_variogram(nug=0.0, nst=1, it1=1, cc1=1.0, azi1=0.0, hmaj1=50, hmin1=50)
     result = np.empty((335 * 335, 25))
     for i in range(25):
         seed = random.randint(11111, 99999)
         sim = GSLIB.sgsim(1, df, 'X', 'Y', columns[int(i + 2)], 335, 335, 1, seed, vario, "simulation")
         result[:, i] = np.reshape(sim, [335 * 335])
-        if i == 12:
+        if i == 10:
             if if_show == 1:
                 xmin = 0.0
                 xmax = 335.0
                 ymin = 0.0
                 ymax = 335.0
                 cmap = plt.cm.inferno
-                GSLIB.locpix_st(sim, xmin, xmax, ymin, ymax, 1, 0.0, 1.0, df, 'X', 'Y', 'K',
+                GSLIB.locpix_st(sim, xmin, xmax, ymin, ymax, 1, 0.0, 1.0, df, 'X', 'Y', 'Fe',
                                 'Sequential Gaussian Simulation', 'X(km)', 'Y(km)', 'Fe', cmap)
                 plt.show()
     return result
