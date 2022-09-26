@@ -126,21 +126,20 @@ def variogram_calculation(data, dist_matrix, lag, steps, tol, channels):
     return variogram
 
 
-def plot_variogram(variogram, color="green", one_time=1):
-    if one_time == 1:
-        names = {'1': 'Ag', '2': 'Al', '3': 'Au', '4': 'B',
-                 '5': 'Ba', '6': 'Be', '7': 'Bi', '8': 'Ca',
-                 '9': 'Co', '10': 'F', '11': 'Fe', '12': 'K',
-                 '13': 'La', '14': 'Li', '15': 'Mg', '16': 'Mn',
-                 '17': 'Mo', '18': 'Nb', '19': 'P', '20': 'Sn',
-                 '21': 'Sr', '22': 'Ti', '23': 'V', '24': 'Y',
-                 '25': 'Zr'}
-        fig, axs = plt.subplots(5, 5, figsize=(17, 14))
-        plt.suptitle('Direct variogram', size=20)
-        plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
-        for col in range(5):
-            for row in range(5):
-                axs[row, col].set_ylim(0.0, 1.5)
+def plot_variogram(variogram, color="green"):
+    names = {'1': 'Ag', '2': 'Al', '3': 'Au', '4': 'B',
+             '5': 'Ba', '6': 'Be', '7': 'Bi', '8': 'Ca',
+             '9': 'Co', '10': 'F', '11': 'Fe', '12': 'K',
+             '13': 'La', '14': 'Li', '15': 'Mg', '16': 'Mn',
+             '17': 'Mo', '18': 'Nb', '19': 'P', '20': 'Sn',
+             '21': 'Sr', '22': 'Ti', '23': 'V', '24': 'Y',
+             '25': 'Zr'}
+    fig, axs = plt.subplots(5, 5, figsize=(17, 14))
+    plt.suptitle('Direct variogram', size=20)
+    plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
+    for col in range(5):
+        for row in range(5):
+            axs[row, col].set_ylim(0.0, 1.5)
     for i in range(25):
         axs[int(i % 5), int(i / 5)].plot(variogram[:, 0], variogram[:, int((51 - i) * i / 2 + 2)], linestyle='--',
                                          marker='x', markersize=0.5, linewidth=0.8,
