@@ -14,7 +14,7 @@ def read_data(plot=1):
     full_data[:, 2:27] = StandardScaler().fit_transform(full_data[:, 2:27])
     deposits = pd.read_csv('./deposit.csv', header=0)
     deposits = deposits.values
-    deposits = full_data[(deposits[:, 0].astype(int) - 1) * 335 + deposits[:, 1].astype(int)]
+    deposits = full_data[(335-deposits[:, 1].astype(int)) * 335 + deposits[:, 0].astype(int)-1]
     # generate random point
     nongranite = np.argwhere(full_data[:, 29] == 0)
     nongranite = np.reshape(full_data[nongranite], [len(nongranite), 30])

@@ -18,4 +18,3 @@ with open("gam.par", "w") as f:
     for v1 in range(1, 26):
         for v2 in range(v1, 26):
             f.write(str(v1) + " " + str(v2) + " 2      -tail, head, variogram type  \n")
-
