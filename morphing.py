@@ -59,7 +59,13 @@ for epoch in range(epochs):
     # plot_cross_variogram(raw_variogram1)
 
 'Check result'
-#  e_type=
+e_type = np.mean(sim_result, axis=2).reshape((335, 335, 25))
+plt.imshow(e_type[:, :, 10])
+plt.show()
+std_map = np.std(sim_result, axis=2).reshape((335, 335, 25))
+plt.imshow(std_map[:, :, 10])
+plt.show()
+
 'Match with real data'
 # landmarks_exhaust_cdf = tps(mf_exhaust_cdf, mf_cdf, landmarks_cdf)
 'Convert back into real values'
