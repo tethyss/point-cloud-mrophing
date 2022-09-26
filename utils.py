@@ -56,10 +56,12 @@ def variogram_gam(data, vcol1, vcol2, grid, cellsize, nlag):
         f.write(str(grid[1]) + " 1 " + str(cellsize) + " -ny, ymn, ysiz                       \n")
         f.write("1 0 0                                   -nz, zmn, zsiz                       \n")
         f.write("1 " + str(nlag) + "                     -number of directions, number of lags\n")
-        f.write("1  0  0                                 -ixd(1),iyd(1),izd(1)               \n")
+        f.write("1  0  0                                 -ixd(1),iyd(1),izd(1)                \n")
         f.write("0                                       -standardize sill? (0=no, 1=yes)     \n")
-        f.write("1                                       -number of variograms                \n")
-        f.write(str(vcol1) + " " + str(vcol2) + " 2      -tail, head, variogram type          \n")
+        f.write("325                                     -number of variograms                \n")
+        for vcol1 in range(25):
+            for vcol2 in range(vcol1, 25):
+                f.write(str(vcol1) + " " + str(vcol2) + " 2      -tail, head, variogram type  \n")
     os.system("gam.exe gam.par")
 
     lag = []
