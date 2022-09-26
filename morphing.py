@@ -4,10 +4,10 @@ epochs = 10  # simulation times
 show = [10, 15]  # config for show
 exhausted_variogram = 0
 
-# read data
+"read data"
 data, landmarks = read_data(plot=0)
 
-# calculate exhausted variogram
+'calculate exhausted variogram'
 if exhausted_variogram == 1:
     rawdata_variogram = []
     for v1 in range(25):
@@ -21,11 +21,18 @@ if exhausted_variogram == 1:
     plot_cross_variogram(raw_variogram)
     os.remove("gam.dat")
 
-# convert landmarks to CDF
+'convert landmarks to CDF'
 landmarks_cdf = convert_to_cdf(np.copy(landmarks[:, 2:]), show_config=show, if_show=1)
 
-# generating MFs
+'creat locations for simulation result'
+loc1 = np.tile(np.arange(1, 336, dtype=int), 335)
+loc2 = np.repeat(np.arange(1, 336, dtype=int), 335)
+loc = np.hstack((loc1.reshape((-1, 1)), loc2.reshape((-1, 1))))
+
+
+'Generating MFs'
 mf_ave = np.zeros(landmarks_cdf.shape)
+
 for epoch in range(epochs):
     if epoch % (epochs / 5) == 0:
         show_config = 1
@@ -33,10 +40,10 @@ for epoch in range(epochs):
         show_config = 0
     mf_raw, mf_cdf = transport(np.copy(landmarks_cdf), if_show=show_config, show_config=show)
 
-    # Sequential gaussian simulation
+    'Sequential gaussian simulation'
     mf_raw = np.hstack((landmarks[:, 0:2], mf_raw))  # add location
     mf_exhaust = sgs(mf_raw, if_show=show_config)
-    mf_exhaust = np.hstack((data[:, 0:2], mf_exhaust))
+    mf_exhaust = np.hstack((loc, mf_exhaust))
     if os.path.exists("gam.dat"):
         os.remove("gam.dat")
     rawdata_variogram1 = []
@@ -47,8 +54,13 @@ for epoch in range(epochs):
             rawdata_variogram1.append(gamma1)
     raw_variogram1 = np.hstack((np.reshape(lag1, [len(lag1), -1]), np.reshape(lag1, [len(lag1), -1])))
     raw_variogram1 = np.hstack((raw_variogram1, np.asarray(rawdata_variogram1).T))
-    plot_variogram(raw_variogram1)
-    #plot_cross_variogram(raw_variogram1)
+    if epoch == 0:
+        plot_variogram(raw_variogram1)
+    else:
+        plot_variogram(raw_variogram1, one_time=0)
+
+
+    #  plot_cross_variogram(raw_variogram1)
 
 
     # # Match with real data
