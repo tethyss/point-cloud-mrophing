@@ -2,24 +2,16 @@ from utils import *
 
 epochs = 10  # simulation times
 show = [10, 15]  # config for show
-exhausted_variogram = 0
+exhausted_variogram = 1
 
 "read data"
 data, landmarks = read_data(plot=0)
 
 'calculate exhausted variogram'
 if exhausted_variogram == 1:
-    rawdata_variogram = []
-    for v1 in range(25):
-        for v2 in range(v1, 25):
-            lag, gamma = variogram_gam(data, vcol1=int(v1 + 1), vcol2=int(v2 + 1),
-                                       grid=[335, 335], cellsize=1, nlag=20)
-            rawdata_variogram.append(gamma)
-    raw_variogram = np.hstack((np.reshape(lag, [len(lag), -1]), np.reshape(lag, [len(lag), -1])))
-    raw_variogram = np.hstack((raw_variogram, np.asarray(rawdata_variogram).T))
-    plot_variogram(raw_variogram)
-    plot_cross_variogram(raw_variogram)
-    os.remove("gam.dat")
+    gamma = variogram_gam(data, grid=[335, 335], cellsize=1, nlag=100)
+    plot_variogram(gamma)
+    plot_cross_variogram(gamma)
 
 'convert landmarks to CDF'
 landmarks_cdf = convert_to_cdf(np.copy(landmarks[:, 2:]), show_config=show, if_show=1)
