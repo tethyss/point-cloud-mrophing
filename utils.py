@@ -35,12 +35,11 @@ def read_data(plot=1):
     return full_data[:, :27], landmark_points[:, :27]
 
 
-def variogram_gam(data, vcol1, vcol2, grid, cellsize, nlag):
-    if not os.path.exists("gam.dat"):
-        columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
-                   'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
-        df = pd.DataFrame(data, columns=columns)
-        GSLIB.Dataframe2GSLIB("gam.dat", df)
+def variogram_gam(data, grid, cellsize, nlag):
+    columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
+               'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
+    df = pd.DataFrame(data, columns=columns)
+    GSLIB.Dataframe2GSLIB("gam.dat", df)
 
     with open("gam.par", "w") as f:
         f.write("                         Parameters for GAM                                  \n")
@@ -64,18 +63,21 @@ def variogram_gam(data, vcol1, vcol2, grid, cellsize, nlag):
                 f.write(str(vcol1) + " " + str(vcol2) + " 2      -tail, head, variogram type  \n")
     os.system("gam.exe gam.par")
 
-    lag = []
-    gamma = []
-
+    lag = np.arange(1, int(nlag + 1), dtype=float).reshape((nlag, 1))
+    i = -1
+    gamma = np.empty((nlag, 325))
     with open("gam_out.out") as f:
-        next(f)  # skip the first line
-
         for line in f:
-            _, l, g, *_ = line.split()
-            lag.append(float(l))
-            gamma.append(float(g))
+            if line[0] == "C":
+                i += 1
+                n = 0
+            else:
+                _, _, g, *_ = line.split()
+                gamma[n, i] = float(g)
+                n += 1
+    gamma = np.hstack((lag, lag, gamma))
 
-    return lag, gamma
+    return gamma
 
 
 def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'

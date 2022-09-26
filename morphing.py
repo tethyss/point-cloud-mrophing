@@ -44,20 +44,11 @@ for epoch in range(epochs):
     mf_exhaust = sgs(mf_raw, if_show=show_config)
     sim_result[:, :, epoch] = mf_exhaust.copy()
     mf_exhaust = np.hstack((loc, mf_exhaust))
-    if os.path.exists("gam.dat"):
-        os.remove("gam.dat")
-    rawdata_variogram1 = []
-    print('computing variogram')
-    for v1 in range(25):
-        for v2 in range(v1, 25):
-            lag1, gamma1 = variogram_gam(mf_exhaust, vcol1=int(v1 + 1), vcol2=int(v2 + 1),
-                                         grid=[335, 335], cellsize=1, nlag=100)
-            rawdata_variogram1.append(gamma1)
-    raw_variogram1 = np.hstack((np.reshape(lag1, [len(lag1), -1]), np.reshape(lag1, [len(lag1), -1])))
-    raw_variogram1 = np.hstack((raw_variogram1, np.asarray(rawdata_variogram1).T))
     if show_config == 1:
-        plot_variogram(raw_variogram1)
-    # plot_cross_variogram(raw_variogram1)
+        print('computing variogram')
+        gamma = variogram_gam(mf_exhaust, grid=[335, 335], cellsize=1, nlag=100)
+        plot_variogram(gamma)
+        # plot_cross_variogram(gamma)
 
 'Check result'
 e_type = np.mean(sim_result, axis=2).reshape((335, 335, 25))
