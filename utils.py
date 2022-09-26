@@ -169,9 +169,9 @@ def plot_cross_variogram(variogram):
 
 
 def transport(lm_cdf, if_show=0, show_config=None):
-    x = np.random.normal(0, 1, len(lm_cdf[1]))
-    for e in range(len(lm_cdf) - 1):
-        x = np.vstack((x, np.random.normal(0, 1, len(lm_cdf[1]))))
+    x = np.random.normal(0, 1, len(lm_cdf[:, 1])).reshape((len(lm_cdf[:, 1]), 1))
+    for e in range(len(lm_cdf[1, :]) - 1):
+        x = np.vstack((x, np.random.normal(0, 1, len(lm_cdf[:, 1])).reshape((len(lm_cdf[:, 1]), 1))))
     a, b = np.ones((len(lm_cdf),)) / len(lm_cdf), np.ones((len(lm_cdf),)) / len(lm_cdf)
     x_cdf = convert_to_cdf(np.copy(x), if_show=if_show, show_config=show_config, color='r')
     dist_matrix = ot.dist(lm_cdf, x_cdf)
