@@ -6,7 +6,6 @@ import geostatspy.GSLIB as GSLIB
 import random
 import ot
 import os
-import math
 
 
 def read_data(plot=1):
@@ -21,7 +20,7 @@ def read_data(plot=1):
     nongranite = np.reshape(full_data[nongranite], [len(nongranite), 30])
     rand = np.random.randint(len(nongranite), size=49)
     nongranite = nongranite[rand]
-    rand = np.random.randint(len(full_data), size=151)
+    rand = np.random.randint(len(full_data), size=102)
     random_point = full_data[rand]
     if plot == 1:
         plt.figure(figsize=(15, 15))
@@ -32,8 +31,7 @@ def read_data(plot=1):
         plt.scatter(nongranite[:, 0], nongranite[:, 1], s=200, marker='x', label="non-deposits")
         plt.legend(fontsize=20)
         plt.show()
-    #  landmark_points = np.vstack((deposits, nongranite, random_point))
-    landmark_points = np.vstack((nongranite, random_point))
+    landmark_points = np.vstack((deposits, nongranite, random_point))
     return full_data[:, :27], landmark_points[:, :27]
 
 
@@ -128,7 +126,7 @@ def variogram_calculation(data, dist_matrix, lag, steps, tol, channels):
     return variogram
 
 
-def plot_variogram(variogram):
+def plot_variogram(variogram, color="green"):
     names = {'1': 'Ag', '2': 'Al', '3': 'Au', '4': 'B',
              '5': 'Ba', '6': 'Be', '7': 'Bi', '8': 'Ca',
              '9': 'Co', '10': 'F', '11': 'Fe', '12': 'K',
@@ -139,15 +137,13 @@ def plot_variogram(variogram):
     fig, axs = plt.subplots(5, 5, figsize=(17, 14))
     plt.suptitle('Direct variogram', size=20)
     plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
-    # for col in range(5):
-    #     for row in range(5):
-    #         axs[row, col].set_ylim(0.0, 1)
-    #         axs[row, col].set_xlim(0.0, 20)
-    #         axs[row, col].set_xticks((0, 5, 10, 15, 20))
+    for col in range(5):
+        for row in range(5):
+            axs[row, col].set_ylim(0.0, 1.5)
     for i in range(25):
         axs[int(i % 5), int(i / 5)].plot(variogram[:, 0], variogram[:, int((51 - i) * i / 2 + 2)], linestyle='--',
                                          marker='x', markersize=0.5, linewidth=0.8,
-                                         color='green', label='Samples')
+                                         color=color, label='Samples')
         axs[int(i % 5), int(i / 5)].set_xlabel('Distance')
         axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (names[str(i + 1)]), labelpad=0, size=20)
         # axs[int(i % 5), int(i / 5)].legend(loc=4, fontsize=10)
@@ -171,7 +167,7 @@ def plot_cross_variogram(variogram):
 def transport(lm_cdf, if_show=0, show_config=None):
     x = np.random.normal(0, 1, len(lm_cdf[:, 1])).reshape((len(lm_cdf[:, 1]), 1))
     for e in range(len(lm_cdf[1, :]) - 1):
-        x = np.vstack((x, np.random.normal(0, 1, len(lm_cdf[:, 1])).reshape((len(lm_cdf[:, 1]), 1))))
+        x = np.hstack((x, np.random.normal(0, 1, len(lm_cdf[:, 1])).reshape((len(lm_cdf[:, 1]), 1))))
     a, b = np.ones((len(lm_cdf),)) / len(lm_cdf), np.ones((len(lm_cdf),)) / len(lm_cdf)
     x_cdf = convert_to_cdf(np.copy(x), if_show=if_show, show_config=show_config, color='r')
     dist_matrix = ot.dist(lm_cdf, x_cdf)
@@ -206,10 +202,73 @@ def sgs(data, if_show=0):
                 ymin = 0.0
                 ymax = 335.0
                 cmap = plt.cm.inferno
-                GSLIB.locpix_st(sim, xmin, xmax, ymin, ymax, 1, 0.0, 1.0, df, 'X', 'Y', 'Fe',
+                GSLIB.locpix_st(sim, xmin, xmax, ymin, ymax, 1, -3.0, 3.0, df, 'X', 'Y', 'Fe',
                                 'Sequential Gaussian Simulation', 'X(km)', 'Y(km)', 'Fe', cmap)
                 plt.show()
     return result
+
+
+def sgsim(nreal, df, xcol, ycol, vcol, nx, ny, hsiz, seed, var, output_file):
+    """Sequential Gaussian simulation, 2D wrapper for sgsim from GSLIB (.exe
+    must be available in PATH or working directory).
+    """
+    x = df[xcol]
+    y = df[ycol]
+    v = df[vcol]
+    df_temp = pd.DataFrame({"X": x, "Y": y, "Var": v})
+    GSLIB.Dataframe2GSLIB("data_temp.dat", df_temp)
+
+    nug = var["nug"]
+    nst = var["nst"]
+    it1 = var["it1"]
+    cc1 = var["cc1"]
+    azi1 = var["azi1"]
+    max_range = var["hmaj1"]
+    hmin1 = var["hmin1"]
+    hctab = int(max_range / hsiz) * 2 + 1
+
+    with open("sgsim.par", "w") as f:
+        f.write("              Parameters for SGSIM                                         \n")
+        f.write("              ********************                                         \n")
+        f.write("                                                                           \n")
+        f.write("START OF PARAMETER:                                                        \n")
+        f.write("data_temp.dat                 -file with data                              \n")
+        f.write("1  2  0  3  0  0              -  columns for X,Y,Z,vr,wt,sec.var.          \n")
+        f.write("-1.0e21 1.0e21                -  trimming limits                           \n")
+        f.write("1                             -transform the data (0=no, 1=yes)            \n")
+        f.write("none.trn                      -  file for output trans table               \n")
+        f.write("0                             -  consider ref. dist (0=no, 1=yes)          \n")
+        f.write("none.dat                      -  file with ref. dist distribution          \n")
+        f.write("3  0                          -  columns for vr and wt                     \n")
+        f.write("-4.1 4.1                      -zmin,zmax(tail extrapolation)               \n")
+        f.write("1   -4.1                      -  lower tail option, parameter              \n")
+        f.write("1   4.1                       -  upper tail option, parameter              \n")
+        f.write("1                             -debugging level: 0,1,2,3                    \n")
+        f.write("debug.dbg                      -file for debugging output                  \n")
+        f.write(str(output_file) + "           -file for simulation output                  \n")
+        f.write(str(nreal) + "                 -number of realizations to generate          \n")
+        f.write(str(nx) + " 0.5 " + str(hsiz) + "                                             \n")
+        f.write(str(ny) + " 0.5 " + str(hsiz) + "                                             \n")
+        f.write("1 0.0 1.0                     - nz zmn zsiz                                \n")
+        f.write(str(seed) + "                  -random number seed                          \n")
+        f.write("0     12                       -min and max original data for sim          \n")
+        f.write("18                            -number of simulated nodes to use            \n")
+        f.write("0                             -assign data to nodes (0=no, 1=yes)          \n")
+        f.write("1     3                       -multiple grid search (0=no, 1=yes),num      \n")
+        f.write("0                             -maximum data per octant (0=not used)        \n")
+        f.write(str(max_range) + " " + str(max_range) + " 1.0 -maximum search  (hmax,hmin,vert) \n")
+        f.write(str(azi1) + "   0.0   0.0       -angles for search ellipsoid                 \n")
+        f.write(str(hctab) + " " + str(hctab) + " 1 -size of covariance lookup table        \n")
+        f.write("0     0.60   1.0              -ktype: 0=SK,1=OK,2=LVM,3=EXDR,4=COLC        \n")
+        f.write("none.dat                      -  file with LVM, EXDR, or COLC variable     \n")
+        f.write("4                             -  column for secondary variable             \n")
+        f.write(str(nst) + " " + str(nug) + "  -nst, nugget effect                          \n")
+        f.write(str(it1) + " " + str(cc1) + " " + str(azi1) + " 0.0 0.0 -it,cc,ang1,ang2,ang3\n")
+        f.write(" " + str(max_range) + " " + str(max_range) + " 1.0 - a_hmax, a_hmin, a_vert        \n")
+
+    os.system("sgsim.exe sgsim.par")
+    sim_array = GSLIB.GSLIB2ndarray(output_file, 0, nx, ny)
+    return sim_array[0]
 #
 #
 # def tps(data, mf, landmarks):

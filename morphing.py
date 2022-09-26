@@ -1,6 +1,6 @@
 from utils import *
 
-epochs = 2  # simulation times
+epochs = 10  # simulation times
 show = [10, 15]  # config for show
 exhausted_variogram = 0
 
@@ -27,12 +27,14 @@ landmarks_cdf = convert_to_cdf(np.copy(landmarks[:, 2:]), show_config=show, if_s
 # generating MFs
 mf_ave = np.zeros(landmarks_cdf.shape)
 for epoch in range(epochs):
-    if epoch % (epochs / 2) == 0:
+    if epoch % (epochs / 5) == 0:
         show_config = 1
     else:
         show_config = 0
     mf_raw, mf_cdf = transport(np.copy(landmarks_cdf), if_show=show_config, show_config=show)
-    mf_ave += mf_cdf
+    #plot_cross_variogram(FnMat)
+    # mf_ave += mf_cdf
+
 
     # Sequential gaussian simulation
     mf_raw = np.hstack((landmarks[:, 0:2], mf_raw))  # add location
@@ -44,12 +46,12 @@ for epoch in range(epochs):
     for v1 in range(25):
         for v2 in range(v1, 25):
             lag1, gamma1 = variogram_gam(mf_exhaust, vcol1=int(v1 + 1), vcol2=int(v2 + 1),
-                                         grid=[335, 335], cellsize=1, nlag=20)
+                                         grid=[335, 335], cellsize=1, nlag=100)
             rawdata_variogram1.append(gamma1)
     raw_variogram1 = np.hstack((np.reshape(lag1, [len(lag1), -1]), np.reshape(lag1, [len(lag1), -1])))
     raw_variogram1 = np.hstack((raw_variogram1, np.asarray(rawdata_variogram1).T))
     plot_variogram(raw_variogram1)
-    plot_cross_variogram(raw_variogram1)
+    #plot_cross_variogram(raw_variogram1)
 
 
     # # Match with real data
@@ -72,3 +74,7 @@ for epoch in range(epochs):
 
 # check correlation
 mf_ave = mf_ave / epochs
+mf_variogram = np.hstack((landmarks[:, 0:2], mf_ave))
+dist = ot.dist(landmarks[:, 0:2], landmarks[:, 0:2], metric = "euclidean")
+FnMat = variogram_calculation(mf_variogram, dist, lag = 4, steps = 25, tol = 4, channels = 25)
+plot_variogram(FnMat, color = "red")
