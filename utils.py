@@ -36,6 +36,7 @@ def read_data(plot=1):
 
 
 def variogram_gam(data, grid, cellsize, nlag):
+    print("generating GSLIB file")
     columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
                'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
     df = pd.DataFrame(data, columns=columns)
