@@ -5,7 +5,7 @@ show = [10, 15]  # config for show
 exhausted_variogram = 1
 
 "read data"
-data, landmarks = read_data(plot=0)
+data, landmarks = read_data(plot=1)
 
 'calculate exhausted variogram'
 if exhausted_variogram == 1:
@@ -38,18 +38,18 @@ for epoch in range(epochs):
     mf_exhaust = np.hstack((loc, mf_exhaust))
     if show_config == 1:
         print('computing variogram')
-        gamma = variogram_gam(mf_exhaust, grid=[335, 335], cellsize=1, nlag=100)
-        plot_variogram(gamma)
+        mf_gamma = variogram_gam(mf_exhaust, grid=[335, 335], cellsize=1, nlag=100)
+        plot_variogram(mf_gamma)
         # plot_cross_variogram(gamma)
 
 'Check result'
 e_type = np.mean(sim_result, axis=2).reshape((335, 335, 25))
 plt.imshow(e_type[:, :, 10], cmap='Spectral', origin='lower')
-plt.scatter(landmarks[:, 1], landmarks[:, 0], c='k', s=8)
+plt.scatter(landmarks[:, 0], landmarks[:, 1], c='k', s=8)
 plt.show()
 std_map = np.std(sim_result, axis=2).reshape((335, 335, 25))
 plt.imshow(std_map[:, :, 10], cmap='Spectral', origin='lower')
-plt.scatter(landmarks[:, 1], landmarks[:, 0], c='k', s=8)
+plt.scatter(landmarks[:, 0], landmarks[:, 1], c='k', s=8)
 plt.show()
 
 'Match with real data'
