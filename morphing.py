@@ -1,6 +1,6 @@
 from utils import *
 
-epochs = 200  # simulation times
+epochs = 10  # simulation times
 show = [10, 15]  # config for show
 exhausted_variogram = 0
 
@@ -61,10 +61,12 @@ for epoch in range(epochs):
 
 'Check result'
 e_type = np.mean(sim_result, axis=2).reshape((335, 335, 25))
-plt.imshow(e_type[:, :, 10])
+plt.imshow(e_type[:, :, 10], cmap = 'Spectral', origin = 'lower')
+plt.scatter(landmarks[:, 1], landmarks[:, 0], c = 'k', s = 8)
 plt.show()
 std_map = np.std(sim_result, axis=2).reshape((335, 335, 25))
-plt.imshow(std_map[:, :, 10])
+plt.imshow(std_map[:, :, 10], cmap = 'Spectral', origin = 'lower')
+plt.scatter(landmarks[:, 1], landmarks[:, 0], c = 'k', s = 8)
 plt.show()
 
 'Match with real data'
