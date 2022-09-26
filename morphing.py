@@ -32,9 +32,6 @@ for epoch in range(epochs):
     else:
         show_config = 0
     mf_raw, mf_cdf = transport(np.copy(landmarks_cdf), if_show=show_config, show_config=show)
-    #plot_cross_variogram(FnMat)
-    # mf_ave += mf_cdf
-
 
     # Sequential gaussian simulation
     mf_raw = np.hstack((landmarks[:, 0:2], mf_raw))  # add location

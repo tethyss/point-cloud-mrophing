@@ -84,7 +84,7 @@ def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
         plt.title('raw data')
         plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s=10, c=color)  # '#FF1F5B'
         plt.axis('square')
-    p = 1. * np.arange(len(data1)) / (len(data1) - 1)
+    p = 1. * np.arange(len(data1)+2) / (len(data1) + 1)
     for ele in range(len(data1[1])):
         data_sorted = data1[:, ele]
         data_sorted = np.hstack(
@@ -92,7 +92,7 @@ def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
         idex = np.argsort(data_sorted, axis=0)
         data_sorted = data_sorted[idex[:, 0]]
         data_sorted[:, [0, 1]] = data_sorted[:, [1, 0]]
-        data_sorted = np.hstack((data_sorted, p.reshape([len(data1), 1])))
+        data_sorted = np.hstack((data_sorted, p[1:len(data1)+1].reshape([len(data1), 1])))
         idex = np.argsort(data_sorted, axis=0)
         data_sorted = data_sorted[idex[:, 0]]
         data1[:, ele] = data_sorted[:, 2]
