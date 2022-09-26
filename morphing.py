@@ -1,6 +1,6 @@
 from utils import *
 
-epochs = 10  # simulation times
+epochs = 200  # simulation times
 show = [10, 15]  # config for show
 exhausted_variogram = 0
 
@@ -55,7 +55,8 @@ for epoch in range(epochs):
             rawdata_variogram1.append(gamma1)
     raw_variogram1 = np.hstack((np.reshape(lag1, [len(lag1), -1]), np.reshape(lag1, [len(lag1), -1])))
     raw_variogram1 = np.hstack((raw_variogram1, np.asarray(rawdata_variogram1).T))
-    plot_variogram(raw_variogram1)
+    if show_config == 1:
+        plot_variogram(raw_variogram1)
     # plot_cross_variogram(raw_variogram1)
 
 'Check result'
