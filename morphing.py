@@ -42,6 +42,7 @@ for epoch in range(epochs):
     print('computing variogram')
     mf_gamma = variogram_gam(mf_exhaust, grid=[335, 335], cellsize=1, nlag=nlag)
     variogram[:, :, epoch] = mf_gamma.copy()
+plot_variogram(variogram)
 
 
 'Check result'

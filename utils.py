@@ -149,7 +149,7 @@ def plot_variogram(variogram, color="green"):
         for i in range(25):
             axs[int(i % 5), int(i / 5)].plot(variogram[:, 0], variogram[:, int((51 - i) * i / 2 + 2)], linestyle='--',
                                              marker='x', markersize=0.5, linewidth=0.8,
-                                             color=color, label='Samples')
+                                             color=color, label='Samples',)
             axs[int(i % 5), int(i / 5)].set_xlabel('Distance')
             axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (names[str(i + 1)]), labelpad=0, size=20)
             # axs[int(i % 5), int(i / 5)].legend(loc=4, fontsize=10)
@@ -159,8 +159,8 @@ def plot_variogram(variogram, color="green"):
             for i in range(25):
                 axs[int(i % 5), int(i / 5)].plot(variogram[:, 0, lines], variogram[:, int((51 - i) * i / 2 + 2), lines],
                                                  linestyle='--',
-                                                 marker='x', markersize=0.5, linewidth=0.8,
-                                                 color=color, label='Samples')
+                                                 marker='x', markersize=0.5, linewidth=0.5,
+                                                 color='0.8', label='Samples', alpha=0.5)
                 axs[int(i % 5), int(i / 5)].set_xlabel('Distance')
                 axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (names[str(i + 1)]), labelpad=0, size=20)
         plt.show()
