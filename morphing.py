@@ -1,6 +1,6 @@
 from utils import *
 
-epochs = 10  # simulation times
+epochs = 200  # simulation times
 show = [10, 15]  # config for show
 exhausted_variogram = 1
 
@@ -9,7 +9,7 @@ data, landmarks = read_data(plot=1)
 
 'calculate exhausted variogram'
 if exhausted_variogram == 1:
-    gamma = variogram_gam(data, grid=[335, 335], cellsize=1, nlag=100)
+    gamma = variogram_gam(data, grid=[335, 335], cellsize=1, nlag=50)
     plot_variogram(gamma)
     plot_cross_variogram(gamma)
 
