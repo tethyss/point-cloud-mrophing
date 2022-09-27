@@ -24,6 +24,8 @@ loc = np.hstack((loc1.reshape((-1, 1)), loc2.reshape((-1, 1))))
 'Generating MFs'
 mf_ave = np.zeros(landmarks_cdf.shape)
 sim_result = np.empty((335 * 335, 25, epochs))  # simulation result container
+nlag = 50
+variogram = np.empty((nlag, 325, epochs))
 for epoch in range(epochs):
     if epoch % (epochs / 5) == 0:
         show_config = 1
@@ -36,11 +38,11 @@ for epoch in range(epochs):
     mf_exhaust = sgs(mf_raw, if_show=show_config)
     sim_result[:, :, epoch] = mf_exhaust.copy()
     mf_exhaust = np.hstack((loc, mf_exhaust))
-    if show_config == 1:
-        print('computing variogram')
-        mf_gamma = variogram_gam(mf_exhaust, grid=[335, 335], cellsize=1, nlag=100)
-        plot_variogram(mf_gamma)
-        # plot_cross_variogram(gamma)
+
+    print('computing variogram')
+    mf_gamma = variogram_gam(mf_exhaust, grid=[335, 335], cellsize=1, nlag=nlag)
+    variogram[:, :, epoch] = mf_gamma.copy()
+
 
 'Check result'
 e_type = np.mean(sim_result, axis=2).reshape((335, 335, 25))
