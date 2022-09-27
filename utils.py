@@ -32,7 +32,8 @@ def read_data(plot=1):
         plt.legend(fontsize=20)
         plt.show()
     landmark_points = np.vstack((deposits, nongranite, random_point))
-    return full_data[:, :27], landmark_points[:, :27]
+    landmark_points = np.unique(landmark_points, axis=0)
+    return full_data[:, :27], landmark_points[:200, :27]
 
 
 def variogram_gam(data, grid, cellsize, nlag):
