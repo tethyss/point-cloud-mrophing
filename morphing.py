@@ -1,6 +1,6 @@
 from utils import *
 
-epochs = 200  # simulation times
+epochs = 20  # simulation times
 show = [10, 15]  # config for show
 exhausted_variogram = 1
 

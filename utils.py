@@ -59,9 +59,9 @@ def variogram_gam(data, grid, cellsize, nlag):
         f.write("1  -1  0                                 -ixd(1),iyd(1),izd(1)                \n")
         f.write("0                                       -standardize sill? (0=no, 1=yes)     \n")
         f.write("325                                     -number of variograms                \n")
-        for vcol1 in range(1, 26):
-            for vcol2 in range(vcol1, 26):
-                f.write(str(vcol1) + " " + str(vcol2) + " 2      -tail, head, variogram type  \n")
+        for v1 in range(1, 26):
+            for v2 in range(v1, 26):
+                f.write(str(v1) + " " + str(v2) + " 2      -tail, head, variogram type  \n")
     os.system("gam.exe gam.par")
 
     lag = np.arange(1, int(nlag + 1), dtype=float).reshape((nlag, 1))
