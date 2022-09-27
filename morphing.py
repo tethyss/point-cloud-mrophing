@@ -25,7 +25,7 @@ loc = np.hstack((loc1.reshape((-1, 1)), loc2.reshape((-1, 1))))
 mf_ave = np.zeros(landmarks_cdf.shape)
 sim_result = np.empty((335 * 335, 25, epochs))  # simulation result container
 nlag = 50
-variogram = np.empty((nlag, 325, epochs))
+variogram = np.empty((nlag, 327, epochs))
 for epoch in range(epochs):
     if epoch % (epochs / 5) == 0:
         show_config = 1
@@ -48,10 +48,12 @@ plot_variogram(variogram)
 'Check result'
 e_type = np.mean(sim_result, axis=2).reshape((335, 335, 25))
 plt.imshow(e_type[:, :, 10], cmap='Spectral', origin='lower')
+plt.colorbar(label='Etype')
 plt.scatter(landmarks[:, 0], landmarks[:, 1], c='k', s=8)
 plt.show()
 std_map = np.std(sim_result, axis=2).reshape((335, 335, 25))
 plt.imshow(std_map[:, :, 10], cmap='Spectral', origin='lower')
+plt.colorbar(label='std')
 plt.scatter(landmarks[:, 0], landmarks[:, 1], c='k', s=8)
 plt.show()
 
