@@ -33,7 +33,7 @@ def read_data(plot=1):
         plt.show()
     landmark_points = np.vstack((deposits, nongranite, random_point))
     landmark_points = np.unique(landmark_points, axis=0)
-    return full_data[:, :27], landmark_points[:200, :27]
+    return full_data[:, :27], landmark_points[:202, :27]
 
 
 def variogram_gam(data, grid, cellsize, nlag):
@@ -161,7 +161,7 @@ def plot_variogram(variogram, color="green"):
                 axs[int(i % 5), int(i / 5)].plot(variogram[:, 0, lines], variogram[:, int((51 - i) * i / 2 + 2), lines],
                                                  linestyle='--',
                                                  marker='x', markersize=0.5, linewidth=0.5,
-                                                 color='0.8', label='Samples', alpha=0.8)
+                                                 color=color, label='Samples', alpha=0.8)
                 axs[int(i % 5), int(i / 5)].set_xlabel('Distance')
                 axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (names[str(i + 1)]), labelpad=0, size=20)
         plt.show()

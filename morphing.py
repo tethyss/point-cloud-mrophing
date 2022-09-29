@@ -1,6 +1,6 @@
 from utils import *
 
-epochs = 20  # simulation times
+epochs = 100  # simulation times
 show = [10, 15]  # config for show
 exhausted_variogram = 1
 
@@ -47,14 +47,13 @@ plot_variogram(variogram)
 
 'Check result'
 e_type = np.mean(sim_result, axis=2).reshape((335, 335, 25))
-plt.imshow(e_type[:, :, 10], cmap='Spectral', origin='lower')
+plt.imshow(e_type[:, :, 10], cmap='plasma', origin='lower')
 plt.colorbar(label='Etype')
 plt.scatter(landmarks[:, 0], landmarks[:, 1], c='k', s=8)
 plt.show()
 std_map = np.std(sim_result, axis=2).reshape((335, 335, 25))
-plt.imshow(std_map[:, :, 10], cmap='Spectral', origin='lower')
+plt.imshow(std_map[:, :, 10], cmap='plasma', origin='lower')
 plt.colorbar(label='std')
-plt.scatter(landmarks[:, 0], landmarks[:, 1], c='k', s=8)
 plt.show()
 
 'Match with real data'
