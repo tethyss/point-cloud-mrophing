@@ -190,6 +190,7 @@ def transport(lm_cdf, if_show=0, show_config=None):
     dist_matrix = ot.dist(lm_cdf, x_cdf)
     pair = ot.emd(a, b, dist_matrix)
     x_cdf = x_cdf[np.nonzero(pair)[1]]
+    x = x[np.nonzero(pair)[1]]
     if if_show == 1:
         plt.plot([lm_cdf[:, show_config[0]], x_cdf[:, show_config[0]]],
                  [lm_cdf[:, show_config[1]], x_cdf[:, show_config[1]]], c=[.5, .5, 1], alpha=0.2)
