@@ -1,8 +1,10 @@
+from __future__ import annotations
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 import geostatspy.GSLIB as GSLIB
+from scipy.spatial.distance import cdist  # type: ignore
 import random
 import ot
 import os
@@ -14,7 +16,7 @@ def read_data(plot=1):
     full_data[:, 2:27] = StandardScaler().fit_transform(full_data[:, 2:27])
     deposits = pd.read_csv('./deposit.csv', header=0)
     deposits = deposits.values
-    deposits = full_data[(335-deposits[:, 1].astype(int)) * 335 + deposits[:, 0].astype(int)-1]
+    deposits = full_data[(335 - deposits[:, 1].astype(int)) * 335 + deposits[:, 0].astype(int) - 1]
     # generate random point
     nongranite = np.argwhere(full_data[:, 29] == 0)
     nongranite = np.reshape(full_data[nongranite], [len(nongranite), 30])
@@ -90,7 +92,7 @@ def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
         plt.title('raw data')
         plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s=10, c=color)  # '#FF1F5B'
         plt.axis('square')
-    p = 1. * np.arange(len(data1)+2) / (len(data1) + 1)
+    p = 1. * np.arange(len(data1) + 2) / (len(data1) + 1)
     for ele in range(len(data1[1])):
         data_sorted = data1[:, ele]
         data_sorted = np.hstack(
@@ -98,7 +100,7 @@ def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
         idex = np.argsort(data_sorted, axis=0)
         data_sorted = data_sorted[idex[:, 0]]
         data_sorted[:, [0, 1]] = data_sorted[:, [1, 0]]
-        data_sorted = np.hstack((data_sorted, p[1:len(data1)+1].reshape([len(data1), 1])))
+        data_sorted = np.hstack((data_sorted, p[1:len(data1) + 1].reshape([len(data1), 1])))
         idex = np.argsort(data_sorted, axis=0)
         data_sorted = data_sorted[idex[:, 0]]
         data1[:, ele] = data_sorted[:, 2]
@@ -150,7 +152,7 @@ def plot_variogram(variogram, color="green"):
         for i in range(25):
             axs[int(i % 5), int(i / 5)].plot(variogram[:, 0], variogram[:, int((51 - i) * i / 2 + 2)], linestyle='--',
                                              marker='x', markersize=0.5, linewidth=0.8,
-                                             color=color, label='Samples',)
+                                             color=color, label='Samples', )
             axs[int(i % 5), int(i / 5)].set_xlabel('Distance')
             axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (names[str(i + 1)]), labelpad=0, size=20)
             # axs[int(i % 5), int(i / 5)].legend(loc=4, fontsize=10)
@@ -224,13 +226,86 @@ def sgs(data, if_show=0):
                                 'Sequential Gaussian Simulation', 'X(km)', 'Y(km)', 'Fe', cmap)
                 plt.show()
     return result
-#
-#
-# def tps(data, mf, landmarks):
-#
-#     tps_function = Rbf(landmarks[:, 0], landmarks[:, 1], mf_cdf[:, 0], function='thin_plate')
-#     exhaust_mf = tps_function(np.linspace(1, 335, 335), np.linspace(1, 335, 335))
-#     return data
+
+
+class ThinPlateSpline:
+
+    def __init__(self, alpha=0.0) -> None:
+        self._fitted = False  # check if fitted
+        self.alpha = alpha  #
+
+        self.parameters = np.array([], dtype=np.float32)
+        self.control_points = np.array([], dtype=np.float32)
+
+    def fit(self, X: np.ndarray, Y: np.ndarray) -> ThinPlateSpline:
+        """Learn f that matches Y given X
+
+        Args:
+            X (ndarray): Control point at source space (X_c)
+                Shape: (n_c, d_s)
+            Y (ndarray): Control point in the target space (X_t)
+                Shape: (n_c, d_t)
+
+        Returns:
+            ThinPlateSpline: self
+        """
+        assert X.shape[0] == Y.shape[0]
+
+        n_c, d_s = X.shape
+        self.control_points = X
+
+        phi = self._radial_distance(X)
+
+        # Build the linear system AP = Y
+        X_p = np.hstack([np.ones((n_c, 1)), X])
+
+        A = np.vstack(
+            [np.hstack([phi + self.alpha * np.identity(n_c), X_p]), np.hstack([X_p.T, np.zeros((d_s + 1, d_s + 1))])]
+        )
+
+        Y = np.vstack([Y, np.zeros((d_s + 1, Y.shape[1]))])
+
+        self.parameters = np.linalg.solve(A, Y)
+        self._fitted = True
+
+        return self
+
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        """Map source space to target space
+
+        Args:
+            X (ndarray): Points in the source space
+                Shape: (n, d_s)
+
+        Returns:
+            ndarray: Mapped point in the target space
+                Shape: (n, d_t)
+        """
+        assert self._fitted
+
+        assert X.shape[1] == self.control_points.shape[1]
+
+        phi = self._radial_distance(X)  # n x n_c
+
+        X = np.hstack([phi, np.ones((X.shape[0], 1)), X])  # n x (n_c + 1 + d_s)
+        return X @ self.parameters
+
+    def _radial_distance(self, X: np.ndarray) -> np.ndarray:
+        """Compute the pairwise radial distances of the given points to the control points
+
+        Input dimensions are not checked.
+
+        Args:
+            X (ndarray): N points in the source space
+                Shape: (n, d_s)
+
+        Returns:
+            ndarray: The radial distance for each point to a control point (\\Phi(X))
+                Shape: (n, n_c)
+        """
+        dist = cdist(X, self.control_points)
+        dist[dist == 0] = 1  # phi(r) = r^2 log(r) ->  (phi(0) = 0)
+        return dist ** 2 * np.log(dist)
 #
 #
 # def de_cdf(data):
