@@ -1,11 +1,16 @@
-from utils import *
+import matplotlib.pyplot as plt
 
-epochs = 100  # simulation times
+from utils import *
+import time
+
+
+start = time.time()
+epochs = 200  # simulation times
 show = [10, 15]  # config for show
-exhausted_variogram = 1
+exhausted_variogram = 0
 
 "read data"
-data, landmarks = read_data(plot=1)
+data, landmarks = read_data(plot=0)
 
 'calculate exhausted variogram'
 if exhausted_variogram == 1:
@@ -27,7 +32,7 @@ sim_result = np.empty((335 * 335, 25, epochs))  # simulation result container
 nlag = 50
 variogram = np.empty((nlag, 327, epochs))
 for epoch in range(epochs):
-    if epoch % (epochs / 5) == 0:
+    if epoch % (epochs / 4) == 0:
         show_config = 1
     else:
         show_config = 0
@@ -37,7 +42,17 @@ for epoch in range(epochs):
     mf_raw = np.hstack((landmarks[:, 0:2], mf_raw))  # add location
     mf_exhaust = sgs(mf_raw, if_show=show_config)
     sim_result[:, :, epoch] = mf_exhaust.copy()
+
+    'TPS'
+    mf_exhaust_cdf = convert_to_cdf(mf_exhaust)
+    if show_config == 1:
+        plt.scatter(mf_cdf[:, 1])
+        plt.scatter(mf_exhaust_cdf[:, 1])
+    ThinPlateSpline.fit(mf_cdf, landmarks_cdf)
+    sim_cdf = ThinPlateSpline.transform(mf_exhaust_cdf)
     mf_exhaust = np.hstack((loc, mf_exhaust))
+
+
 
     print('computing variogram')
     mf_gamma = variogram_gam(mf_exhaust, grid=[335, 335], cellsize=1, nlag=nlag)
@@ -46,14 +61,17 @@ plot_variogram(variogram)
 
 
 'Check result'
-e_type = np.mean(sim_result, axis=2).reshape((335, 335, 25))
-plt.imshow(e_type[:, :, 10], cmap='plasma', origin='lower')
-plt.colorbar(label='Etype')
-plt.scatter(landmarks[:, 0], landmarks[:, 1], c='k', s=8)
+'Check result'
+e_type = np.mean(sim_result, axis = 2).reshape((335, 335, 25))
+plt.imshow(np.flipud(e_type[:, :, 10]), cmap = 'jet', origin = 'lower')
+plt.title("E-type")
+plt.colorbar()
+plt.scatter(landmarks[:, 0], landmarks[:, 1], c = 'k', s = 8)
 plt.show()
-std_map = np.std(sim_result, axis=2).reshape((335, 335, 25))
-plt.imshow(std_map[:, :, 10], cmap='plasma', origin='lower')
-plt.colorbar(label='std')
+std_map = np.std(sim_result, axis = 2).reshape((335, 335, 25))
+plt.imshow(np.flipud(std_map[:, :, 10]), cmap = 'jet', origin = 'lower')
+plt.title("STD")
+plt.colorbar()
 plt.show()
 
 'Match with real data'
@@ -81,4 +99,6 @@ plt.show()
 # dist = ot.dist(landmarks[:, 0:2], landmarks[:, 0:2], metric="euclidean")
 # FnMat = variogram_calculation(mf_variogram, dist, lag=4, steps=25, tol=4, channels=25)
 # plot_variogram(FnMat, color="red")
+end = time.time()
+print(end - start)
 pass
