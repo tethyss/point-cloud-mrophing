@@ -1,16 +1,14 @@
-import matplotlib.pyplot as plt
-
 from utils import *
 import time
 
 
 start = time.time()
-epochs = 200  # simulation times
+epochs = 100  # simulation times
 show = [10, 15]  # config for show
 exhausted_variogram = 0
 
 "read data"
-data, landmarks = read_data(plot=0)
+data, landmarks = read_data(plot=1)
 
 'calculate exhausted variogram'
 if exhausted_variogram == 1:
@@ -29,6 +27,7 @@ loc = np.hstack((loc1.reshape((-1, 1)), loc2.reshape((-1, 1))))
 'Generating MFs'
 mf_ave = np.zeros(landmarks_cdf.shape)
 sim_result = np.empty((335 * 335, 25, epochs))  # simulation result container
+cdf_result = np.empty((335 * 335, 25, epochs))
 nlag = 50
 variogram = np.empty((nlag, 327, epochs))
 for epoch in range(epochs):
@@ -44,23 +43,27 @@ for epoch in range(epochs):
     sim_result[:, :, epoch] = mf_exhaust.copy()
 
     'TPS'
-    mf_exhaust_cdf = convert_to_cdf(mf_exhaust)
+    mf_exhaust_cdf = convert_to_cdf(mf_exhaust.copy())
+    m_cdf = lgt(mf_cdf.copy(), typ = 1)
+    lm_cdf = lgt(landmarks_cdf.copy(), typ = 1)
+    exhaust_cdf = lgt(mf_exhaust_cdf.copy(), typ = 1)
+    tps = ThinPlateSpline()
+    tps.fit(m_cdf, lm_cdf)
+    sim_cdf = tps.transform(exhaust_cdf)
+    sim_cdf = lgt(sim_cdf.copy(), typ = -1)
+    sim = de_cdf(landmarks[:, 2:], landmarks_cdf, sim_cdf)
     if show_config == 1:
-        plt.scatter(mf_cdf[:, 1])
-        plt.scatter(mf_exhaust_cdf[:, 1])
-    ThinPlateSpline.fit(mf_cdf, landmarks_cdf)
-    sim_cdf = ThinPlateSpline.transform(mf_exhaust_cdf)
-    mf_exhaust = np.hstack((loc, mf_exhaust))
-
-
+        plt.scatter(sim[:, 10], sim_cdf[:, 10], c = 'y', s = 1)
+        plt.scatter(landmarks[:, 12], landmarks_cdf[:, 10], c = '0', s = 2)
+        plt.show()
+    sim_result[:, :, epoch] = sim.copy()
 
     print('computing variogram')
-    mf_gamma = variogram_gam(mf_exhaust, grid=[335, 335], cellsize=1, nlag=nlag)
+    result = np.hstack((loc, sim.copy()))
+    mf_gamma = variogram_gam(result, grid=[335, 335], cellsize=1, nlag=nlag)
     variogram[:, :, epoch] = mf_gamma.copy()
 plot_variogram(variogram)
 
-
-'Check result'
 'Check result'
 e_type = np.mean(sim_result, axis = 2).reshape((335, 335, 25))
 plt.imshow(np.flipud(e_type[:, :, 10]), cmap = 'jet', origin = 'lower')
@@ -74,31 +77,6 @@ plt.title("STD")
 plt.colorbar()
 plt.show()
 
-'Match with real data'
-# landmarks_exhaust_cdf = tps(mf_exhaust_cdf, mf_cdf, landmarks_cdf)
-'Convert back into real values'
-# value_sim = de_cdf(landmarks_exhaust_cdf)
-
-
-# #  logit
-# mf_logit = np.empty(mf_cdf.shape)
-# for i in range(len(mf_cdf[1])):
-#     for idx, x in enumerate(mf_cdf[:, i]):
-#         if x != 1 and x != 0:
-#             mf_logit[idx, i] = math.log(x / (1 - x))
-# plt.figure()
-# plt.scatter(mf_logit[:, show[0]], mf_logit[:, show[1]], s=10, c='b')
-# plt.title('logit space')
-# plt.axis('square')
-# plt.show()
-
-
-# check correlation
-# mf_ave = mf_ave / epochs
-# mf_variogram = np.hstack((landmarks[:, 0:2], mf_ave))
-# dist = ot.dist(landmarks[:, 0:2], landmarks[:, 0:2], metric="euclidean")
-# FnMat = variogram_calculation(mf_variogram, dist, lag=4, steps=25, tol=4, channels=25)
-# plot_variogram(FnMat, color="red")
 end = time.time()
-print(end - start)
+print((end - start)/60)
 pass

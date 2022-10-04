@@ -23,7 +23,7 @@ def read_data(plot=1):
     nongranite = np.reshape(full_data[nongranite], [len(nongranite), 30])
     rand = np.random.randint(len(nongranite), size = 49)
     nongranite = nongranite[rand]
-    rand = np.random.randint(len(full_data), size = 120)
+    rand = np.random.randint(len(full_data), size = 122)
     random_point = full_data[rand]
     if plot == 1:
         plt.figure(figsize = (15, 15))
@@ -36,6 +36,9 @@ def read_data(plot=1):
         plt.show()
     landmark_points = np.vstack((deposits, nongranite, random_point))
     landmark_points = np.unique(landmark_points, axis = 0)
+    order = np.arange(landmark_points.shape[0])
+    np.random.shuffle(order)
+    landmark_points = landmark_points[order, :]
     return full_data[:, :27], landmark_points[:200, :27]
 
 
@@ -86,13 +89,13 @@ def variogram_gam(data, grid, cellsize, nlag):
 
 
 def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
-    if show_config is None:
-        show_config = [10, 15]
-    if if_show == 1:
-        plt.figure(1)
-        plt.title('raw data')
-        plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s = 10, c = color)  # '#FF1F5B'
-        plt.axis('square')
+    # if show_config is None:
+    #     show_config = [10, 15]
+    # if if_show == 1:
+    #     plt.figure(1)
+    #     plt.title('raw data')
+    #     plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s = 10, c = color)  # '#FF1F5B'
+    #     plt.axis('square')
     p = 1. * np.arange(len(data1) + 2) / (len(data1) + 1)
     for ele in range(len(data1[1])):
         data_sorted = data1[:, ele]
@@ -105,12 +108,12 @@ def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
         idex = np.argsort(data_sorted, axis = 0)
         data_sorted = data_sorted[idex[:, 0]]
         data1[:, ele] = data_sorted[:, 2]
-    if if_show == 1:
-        plt.figure(2)
-        plt.title('CDF')
-        plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s = 10, c = color)
-        plt.axis('square')
-        plt.show()
+    # if if_show == 1:
+    #     plt.figure(2)
+    #     plt.title('CDF')
+    #     plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s = 10, c = color)
+    #     plt.axis('square')
+    #     plt.show()
     return data1
 
 
@@ -290,24 +293,22 @@ def de_cdf(anchors, anchors_cdf, data):
         rank = np.hstack(
             (anchors[:, ele].reshape((-1, 1)), anchors_cdf[:, ele].reshape((-1, 1))))  # 0-real value 1-cdf value
         rank = rank[rank[:, 1].argsort()]
-        bottom = (rank[1, 0] - rank[0, 0]) / (rank[1, 1] - rank[0, 1]) * (0 - rank[0, 1])
-        top = (rank[-1, 0] - rank[-2, 0]) / (rank[-1, 1] - rank[-2, 1]) * (1 - rank[-1, 1])+rank[-1, 0]
+        bottom = 2*rank[0, 0]-rank[1, 0]
+        top = 2*rank[-1, 0]-rank[-2, 0]
         rank = np.vstack(([bottom, 0], rank, [top, 1]))
         data_sorted = np.hstack((data[:, ele].reshape([-1, 1]), np.arange(data.shape[0]).reshape([-1, 1])))
         data_sorted = data_sorted[data_sorted[:, 0].argsort()]
         for idx in range(data.shape[0]):
             if rank[i, 1] <= data_sorted[idx, 0] < rank[i + 1, 1]:
-                if data_sorted[idx,0] == rank[i, 1]:
+                if data_sorted[idx, 0] == rank[i, 1]:
                     data_decdf[idx, ele] = rank[i, 0]
                 else:
-                    data_decdf[idx, ele] = (rank[i+1, 0] - rank[i, 0]) / (rank[i+1, 1] - rank[i, 1]) * (data_sorted[idx, 0] - rank[i, 1])
+                    data_decdf[idx, ele] = (rank[i+1, 0] - rank[i, 0]) / (rank[i+1, 1] - rank[i, 1]) * (data_sorted[idx, 0] - rank[i, 1])+rank[i, 0]
             else:
                 i += 1
-                idx = idx-1
-        data_decdf = data_decdf[data_sorted[:, 1].argsort()]
-    print("hello")
-
-    return None
+                data_decdf[idx, ele] = rank[i, 0]
+        data_decdf[:, ele] = data_decdf[data_sorted[:, 1].argsort(), ele]
+    return data_decdf
 
 def lgt(data, typ):
     mf_logit = np.empty(data.shape)
