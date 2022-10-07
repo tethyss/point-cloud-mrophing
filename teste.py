@@ -1,9 +1,23 @@
-import scipy.stats as stats
 import numpy as np
-dist = stats.truncnorm(-4.1, 4.1, loc=0, scale=1)
-x = (dist.rvs(200)).reshape((-1, 1))
-for e in range(25 - 1):
-    x = np.hstack((x, (dist.rvs(200)).reshape((-1, 1))))
-    print(np.mean(x[:, e+1]))
-    print(np.std(x[:, e+1]))
+import pandas as pd
+
+from utils import *
+
+
+def a2g(data):
+    print("generating GSLIB file")
+    columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
+               'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
+    df=[]
+    df.append(np.asarray(columns).reshape((-1, 1)))
+    df = pd.DataFrame(df)
+    df.to_csv('1test.dat', index = False, header = None)
+    pass
+
+
+
+
+
+data, landmarks = read_data(plot=0)
+a2g(data)
 pass

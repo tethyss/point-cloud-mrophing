@@ -3,7 +3,7 @@ import time
 
 
 start = time.time()
-epochs = 100  # simulation times
+epochs = 10  # simulation times
 show = [10, 15]  # config for show
 exhausted_variogram = 0
 
@@ -31,10 +31,11 @@ cdf_result = np.empty((335 * 335, 25, epochs))
 nlag = 50
 variogram = np.empty((nlag, 327, epochs))
 for epoch in range(epochs):
-    if epoch % (epochs / 4) == 0:
-        show_config = 1
-    else:
-        show_config = 0
+    # if epoch % (epochs / 4) == 0:
+    #     show_config = 1
+    # else:
+    #     show_config = 0
+    show_config = 1
     mf_raw, mf_cdf = transport(np.copy(landmarks_cdf), if_show=show_config, show_config=show)
 
     'Sequential gaussian simulation'
@@ -53,16 +54,28 @@ for epoch in range(epochs):
     sim_cdf = lgt(sim_cdf.copy(), typ = -1)
     sim = de_cdf(landmarks[:, 2:], landmarks_cdf, sim_cdf)
     if show_config == 1:
-        plt.scatter(sim[:, 10], sim_cdf[:, 10], c = 'y', s = 1)
-        plt.scatter(landmarks[:, 12], landmarks_cdf[:, 10], c = '0', s = 2)
+        plt.imshow(np.flipud(sim[:, 10].reshape(335, 335)), cmap = 'jet', origin = 'lower')
+        plt.colorbar()
+        plt.title("Morphing result")
+        plt.show()
+        plt.imshow(np.flipud(data[:, 12].reshape(335, 335)), cmap = 'jet', origin = 'lower', vmax = np.max(sim[:,10]),vmin = np.min(sim[:,10]))
+        plt.colorbar()
+        plt.title("Original data")
         plt.show()
     sim_result[:, :, epoch] = sim.copy()
 
-    print('computing variogram')
-    result = np.hstack((loc, sim.copy()))
-    mf_gamma = variogram_gam(result, grid=[335, 335], cellsize=1, nlag=nlag)
-    variogram[:, :, epoch] = mf_gamma.copy()
+    # print('computing variogram')
+    # result = np.hstack((loc, sim.copy()))
+    # mf_gamma = variogram_gam(result, grid=[335, 335], cellsize=1, nlag=nlag)
+    # variogram[:, :, epoch] = mf_gamma.copy()
 plot_variogram(variogram)
+
+'show pdf'
+for e in range(epochs):
+    plt.scatter(sim_result[:, 10, e], sim_cdf[:, 10], c = 'y', s = 1)
+plt.scatter(landmarks[:, 12], landmarks_cdf[:, 10], c = '0', s = 2)
+plt.show()
+
 
 'Check result'
 e_type = np.mean(sim_result, axis = 2).reshape((335, 335, 25))
