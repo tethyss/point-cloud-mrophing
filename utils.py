@@ -43,11 +43,7 @@ def read_data(plot=1):
 
 
 def variogram_gam(data, grid, cellsize, nlag):
-    print("generating GSLIB file")
-    columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
-               'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
-    df = pd.DataFrame(data, columns = columns)
-    GSLIB.Dataframe2GSLIB("gam.dat", df)
+    a2g(data, "gam.dat")
 
     with open("gam.par", "w") as f:
         f.write("                         Parameters for GAM                                  \n")
@@ -86,6 +82,18 @@ def variogram_gam(data, grid, cellsize, nlag):
     gamma = np.hstack((lag, lag, gamma))
 
     return gamma
+
+
+def a2g(rawdata, file):
+    columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
+               'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
+    title = np.asarray('data')
+    col = np.asarray(columns).reshape((-1, 1))
+    head = np.vstack((title, col))
+    head = pd.DataFrame(head)
+    rawdata = pd.DataFrame(rawdata)
+    head.to_csv(file, index=False, header=False)
+    rawdata.to_csv(file, index=False, header=False, mode="a")
 
 
 def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
@@ -215,6 +223,7 @@ def sgs(data, if_show=0):
     df = pd.DataFrame(data, columns = columns)
     vario = GSLIB.make_variogram(nug = 0.0, nst = 1, it1 = 1, cc1 = 1.0, azi1 = 0.0, hmaj1 = 50, hmin1 = 50)
     result = np.empty((335 * 335, 25))
+    a2g(data, "simulation")
     for i in range(25):
         seed = random.randint(11111, 99999)
         sim = GSLIB.sgsim(1, df, 'X', 'Y', columns[int(i + 2)], 335, 335, 1, seed, vario, "simulation")
