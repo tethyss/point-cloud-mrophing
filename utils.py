@@ -83,24 +83,24 @@ def variogram_gam(data, grid, cellsize, nlag):
 
 
 def variogram_calculation(data, lag, steps, tol, channels):
-    dist_matrix = ot.dist(data[:, :2], data[:, 2], metric='euclidean')
+    dist_matrix = ot.dist(data[:, :2], data[:, :2], metric='euclidean')
     'variogram structure: 0: Average distance; 1: counts in lag.'
-    variogram = np.zeros((steps + 1, int(2 + channels * (channels + 1) / 2)))
+    variogram = np.zeros((steps, int(2 + channels * (channels + 1) / 2)))
     for i_Step in range(steps):
         print("i_Step :", i_Step + 1)
         x_pos, y_pos = np.where((dist_matrix > lag * (i_Step + 1) - tol) & (dist_matrix < lag * (i_Step + 1) + tol))
         for j in range(len(x_pos)):
             x_j, y_j = x_pos[j], y_pos[j]
-            variogram[i_Step + 1, 1] += 1
-            variogram[i_Step + 1, 0] += dist_matrix[x_j, y_j]
+            variogram[i_Step, 1] += 1
+            variogram[i_Step, 0] += dist_matrix[x_j, y_j]
             dif_j = data[x_j, 2:] - data[y_j, 2:]
             pos = 2
             for c in range(channels):
-                variogram[i_Step + 1, int(pos):int(pos + len(dif_j[c:]))] += dif_j[c] * dif_j[c:]
+                variogram[i_Step, int(pos):int(pos + len(dif_j[c:]))] += dif_j[c] * dif_j[c:]
                 pos += len(dif_j[c:])
-        variogram[i_Step + 1, 2:] = variogram[i_Step + 1, 2:] / (2 * variogram[i_Step + 1, 1])
-        variogram[i_Step + 1, 0] = variogram[i_Step + 1, 0] / variogram[i_Step + 1, 1]  # Average distance
-        variogram[i_Step + 1, 1] = variogram[i_Step + 1, 1] / 2  # Without duplicates
+        variogram[i_Step, 2:] = variogram[i_Step, 2:] / (2 * variogram[i_Step, 1])
+        variogram[i_Step, 0] = variogram[i_Step, 0] / variogram[i_Step, 1]  # Average distance
+        variogram[i_Step, 1] = variogram[i_Step, 1] / 2  # Without duplicates
     return variogram
 
 
