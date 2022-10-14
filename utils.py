@@ -214,6 +214,7 @@ def transport(lm_cdf, if_show=0, show_config=None):
         plt.title('OT matrix with samples')
         plt.axis('square')
         plt.show()
+
     return x, x_cdf
 
 
