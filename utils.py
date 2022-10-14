@@ -82,6 +82,28 @@ def variogram_gam(data, grid, cellsize, nlag):
     return gamma
 
 
+def variogram_calculation(data, lag, steps, tol, channels):
+    dist_matrix = ot.dist(data[:, :2], data[:, 2], metric='euclidean')
+    'variogram structure: 0: Average distance; 1: counts in lag.'
+    variogram = np.zeros((steps + 1, int(2 + channels * (channels + 1) / 2)))
+    for i_Step in range(steps):
+        print("i_Step :", i_Step + 1)
+        x_pos, y_pos = np.where((dist_matrix > lag * (i_Step + 1) - tol) & (dist_matrix < lag * (i_Step + 1) + tol))
+        for j in range(len(x_pos)):
+            x_j, y_j = x_pos[j], y_pos[j]
+            variogram[i_Step + 1, 1] += 1
+            variogram[i_Step + 1, 0] += dist_matrix[x_j, y_j]
+            dif_j = data[x_j, 2:] - data[y_j, 2:]
+            pos = 2
+            for c in range(channels):
+                variogram[i_Step + 1, int(pos):int(pos + len(dif_j[c:]))] += dif_j[c] * dif_j[c:]
+                pos += len(dif_j[c:])
+        variogram[i_Step + 1, 2:] = variogram[i_Step + 1, 2:] / (2 * variogram[i_Step + 1, 1])
+        variogram[i_Step + 1, 0] = variogram[i_Step + 1, 0] / variogram[i_Step + 1, 1]  # Average distance
+        variogram[i_Step + 1, 1] = variogram[i_Step + 1, 1] / 2  # Without duplicates
+    return variogram
+
+
 def a2g(rawdata, file):
     columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
                'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
@@ -171,11 +193,11 @@ def plot_cross_variogram(variogram):
 
 
 def transport(lm_cdf, if_show=0, show_config=None):
-    x = np.random.normal(0, 1, len(lm_cdf[:, 1])).reshape((len(lm_cdf[:, 1]), 1))
-    for e in range(len(lm_cdf[1, :]) - 1):
-        x = np.hstack((x, np.random.normal(0, 1, len(lm_cdf[:, 1])).reshape((len(lm_cdf[:, 1]), 1))))
+    x = np.empty(lm_cdf.shape)
+    for e in range(lm_cdf.shape[1]):
+        x[:, e] = np.random.normal(0, 1, lm_cdf.shape[0])
     a, b = np.ones((len(lm_cdf),)) / len(lm_cdf), np.ones((len(lm_cdf),)) / len(lm_cdf)
-    x_cdf = convert_to_cdf(np.copy(x), if_show = if_show, show_config = show_config, color = 'r')
+    x_cdf = convert_to_cdf(x.copy(), if_show = if_show, show_config = show_config, color = 'r')
     dist_matrix = ot.dist(lm_cdf, x_cdf)
     pair = ot.emd(a, b, dist_matrix)
     x_cdf = x_cdf[np.nonzero(pair)[1]]
@@ -263,7 +285,6 @@ class ThinPlateSpline:
     def __init__(self, alpha=0.0) -> None:
         self._fitted = False  # check if fitted
         self.alpha = alpha  #
-
         self.parameters = np.array([], dtype = np.float32)
         self.control_points = np.array([], dtype = np.float32)
 
