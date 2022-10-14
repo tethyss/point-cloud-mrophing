@@ -79,6 +79,7 @@ def variogram_gam(data, grid, cellsize, nlag):
                 gamma[n, i] = float(g)
                 n += 1
     gamma = np.hstack((lag, lag, gamma))
+
     return gamma
 
 
