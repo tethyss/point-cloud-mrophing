@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 from scipy.spatial.distance import cdist  # type: ignore
 import random
 import ot
-import os
+import subprocess as sp
 import math
 
 
@@ -22,7 +22,7 @@ def read_data(plot=1):
     nongranite = np.reshape(full_data[nongranite], [len(nongranite), 30])
     rand = np.random.randint(len(nongranite), size = 49)
     nongranite = nongranite[rand]
-    rand = np.random.randint(len(full_data), size = 122)
+    rand = np.random.randint(len(full_data), size = 432)
     random_point = full_data[rand]
     if plot == 1:
         plt.figure(figsize = (15, 15))
@@ -38,12 +38,11 @@ def read_data(plot=1):
     order = np.arange(landmark_points.shape[0])
     np.random.shuffle(order)
     landmark_points = landmark_points[order, :]
-    return full_data[:, :27], landmark_points[:200, :27]
+    return full_data[:, :27], landmark_points[:500, :27]
 
 
 def variogram_gam(data, grid, cellsize, nlag):
     a2g(data, "gam.dat")
-
     with open("gam.par", "w") as f:
         f.write("                         Parameters for GAM                                  \n")
         f.write("                         *******************                                 \n")
@@ -64,7 +63,7 @@ def variogram_gam(data, grid, cellsize, nlag):
         for v1 in range(1, 26):
             for v2 in range(v1, 26):
                 f.write(str(v1) + " " + str(v2) + " 2      -tail, head, variogram type  \n")
-    os.system("gam.exe gam.par")
+    sp.run("gam.exe gam.par", stdout = sp.DEVNULL)
 
     lag = np.arange(1, int(nlag + 1), dtype = float).reshape((nlag, 1))
     i = -1
@@ -79,29 +78,30 @@ def variogram_gam(data, grid, cellsize, nlag):
                 gamma[n, i] = float(g)
                 n += 1
     gamma = np.hstack((lag, lag, gamma))
+
     return gamma
 
 
 def a2g(rawdata, file):
     columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
                'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
-    title = np.asarray('data')
+    title = np.asarray(file)
     col = np.asarray(columns).reshape((-1, 1))
-    head = np.vstack((title, col))
+    head = np.vstack((title, len(columns), col))
     head = pd.DataFrame(head)
     rawdata = pd.DataFrame(rawdata)
-    head.to_csv(file, index=False, header=False)
-    rawdata.to_csv(file, index=False, header=False, mode="a")
+    head.to_csv(file, index = False, header = False)
+    rawdata.to_csv(file, index = False, header = False, mode = "a", sep = ' ')
 
 
 def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
-    # if show_config is None:
-    #     show_config = [10, 15]
     # if if_show == 1:
     #     plt.figure(1)
     #     plt.title('raw data')
     #     plt.scatter(data1[:, show_config[0]], data1[:, show_config[1]], s = 10, c = color)  # '#FF1F5B'
     #     plt.axis('square')
+    if show_config is None:
+        show_config = [10, 15]
     p = 1. * np.arange(len(data1) + 2) / (len(data1) + 1)
     for ele in range(len(data1[1])):
         data_sorted = data1[:, ele]
@@ -123,27 +123,6 @@ def convert_to_cdf(data1, if_show=0, show_config=None, color='b'):  # '#F9E855'
     return data1
 
 
-def variogram_calculation(data, dist_matrix, lag, steps, tol, channels):
-    # variogram structure: 0: Average distance; 1: counts in lag.
-    variogram = np.zeros((steps + 1, int(2 + channels * (channels + 1) / 2)))
-    for i_Step in range(steps):
-        print("i_Step :", i_Step + 1)
-        x_pos, y_pos = np.where((dist_matrix > lag * (i_Step + 1) - tol) & (dist_matrix < lag * (i_Step + 1) + tol))
-        for j in range(len(x_pos)):
-            x_j, y_j = x_pos[j], y_pos[j]
-            variogram[i_Step + 1, 1] += 1
-            variogram[i_Step + 1, 0] += dist_matrix[x_j, y_j]
-            dif_j = data[x_j, 2:] - data[y_j, 2:]
-            pos = 2
-            for c in range(channels):
-                variogram[i_Step + 1, int(pos):int(pos + len(dif_j[c:]))] += dif_j[c] * dif_j[c:]
-                pos += len(dif_j[c:])
-        variogram[i_Step + 1, 2:] = variogram[i_Step + 1, 2:] / (2 * variogram[i_Step + 1, 1])
-        variogram[i_Step + 1, 0] = variogram[i_Step + 1, 0] / variogram[i_Step + 1, 1]  # Average distance
-        variogram[i_Step + 1, 1] = variogram[i_Step + 1, 1] / 2  # Without duplicates
-    return variogram
-
-
 def plot_variogram(variogram, color="green"):
     names = {'1': 'Ag', '2': 'Al', '3': 'Au', '4': 'B',
              '5': 'Ba', '6': 'Be', '7': 'Bi', '8': 'Ca',
@@ -157,7 +136,7 @@ def plot_variogram(variogram, color="green"):
     plt.subplots_adjust(left = 0.05, bottom = 0.05, right = 0.95, top = 0.95, wspace = 0.5, hspace = 0.3)
     for col in range(5):
         for row in range(5):
-            axs[row, col].set_ylim(0.0, 1.5)
+            axs[row, col].set_ylim(0.0, 1.2)
     if len(variogram.shape) == 2:
         for i in range(25):
             axs[int(i % 5), int(i / 5)].plot(variogram[:, 0], variogram[:, int((51 - i) * i / 2 + 2)], linestyle = '--',
@@ -166,7 +145,6 @@ def plot_variogram(variogram, color="green"):
             axs[int(i % 5), int(i / 5)].set_xlabel('Distance')
             axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (names[str(i + 1)]), labelpad = 0, size = 20)
             # axs[int(i % 5), int(i / 5)].legend(loc=4, fontsize=10)
-        plt.show()
     else:
         for lines in range(variogram.shape[2]):
             for i in range(25):
@@ -176,7 +154,6 @@ def plot_variogram(variogram, color="green"):
                                                  color = color, label = 'Samples', alpha = 0.8)
                 axs[int(i % 5), int(i / 5)].set_xlabel('Distance')
                 axs[int(i % 5), int(i / 5)].set_ylabel("%s" % (names[str(i + 1)]), labelpad = 0, size = 20)
-        plt.show()
 
 
 def plot_cross_variogram(variogram):
@@ -203,7 +180,7 @@ def transport(lm_cdf, if_show=0, show_config=None):
     pair = ot.emd(a, b, dist_matrix)
     x_cdf = x_cdf[np.nonzero(pair)[1]]
     x = x[np.nonzero(pair)[1]]
-    if if_show == 1:
+    if if_show == 10:
         plt.plot([lm_cdf[:, show_config[0]], x_cdf[:, show_config[0]]],
                  [lm_cdf[:, show_config[1]], x_cdf[:, show_config[1]]], c = [.5, .5, 1], alpha = 0.2)
         plt.plot(lm_cdf[:, show_config[0]], lm_cdf[:, show_config[1]], '+', c = 'b', label = 'Source samples')
@@ -212,31 +189,72 @@ def transport(lm_cdf, if_show=0, show_config=None):
         plt.title('OT matrix with samples')
         plt.axis('square')
         plt.show()
-
     return x, x_cdf
 
 
-def sgs(data, if_show=0):
-    columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg', 'Mn',
-               'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
-    df = pd.DataFrame(data, columns = columns)
-    vario = GSLIB.make_variogram(nug = 0.0, nst = 1, it1 = 1, cc1 = 1.0, azi1 = 0.0, hmaj1 = 50, hmin1 = 50)
-    result = np.empty((335 * 335, 25))
-    a2g(data, "simulation")
+def sgs(input, if_show=0):
+    result = np.zeros((335 * 335, 25))
+    a2g(input, "data4sim.dat")
     for i in range(25):
         seed = random.randint(11111, 99999)
-        sim = GSLIB.sgsim(1, df, 'X', 'Y', columns[int(i + 2)], 335, 335, 1, seed, vario, "simulation")
-        result[:, i] = np.reshape(sim, [335 * 335])
-        if i == 10:
-            if if_show == 1:
-                xmin = 0.0
-                xmax = 335.0
-                ymin = 0.0
-                ymax = 335.0
-                cmap = "jet"
-                GSLIB.locpix_st(sim, xmin, xmax, ymin, ymax, 1, -4.1, 4.1, df, 'X', 'Y', 'Fe',
-                                'Sequential Gaussian Simulation', 'X(km)', 'Y(km)', 'Fe', cmap)
-                plt.show()
+        cellsize = 1
+        nug = 0.0
+        nst = 1
+        it1 = 1
+        cc1 = 1 - nug
+        azi1 = 0.0
+        max_range = 50
+        searchrad = int(max_range / cellsize) * 2 + 1
+
+        with open("sgsim.par", "w") as f:
+            f.write("              Parameters for SGSIM                                         \n")
+            f.write("              ********************                                         \n")
+            f.write("                                                                           \n")
+            f.write("START OF PARAMETER:                                                        \n")
+            f.write("data4sim.dat                  -file with data                              \n")
+            f.write("1  2  0 " + str(i + 3) + "  0  0 -  columns for X,Y,Z,vr,wt,sec.var.          \n")
+            f.write("-1.0e21 1.0e21                -  trimming limits                           \n")
+            f.write("1                             -transform the data (0=no, 1=yes)            \n")
+            f.write("none.trn                      -  file for output trans table               \n")
+            f.write("0                             -  consider ref. dist (0=no, 1=yes)          \n")
+            f.write("none.dat                      -  file with ref. dist distribution          \n")
+            f.write("3 0                           -  columns for vr and wt                     \n")
+            f.write("-4.1 4.1                      -zmin,zmax(tail extrapolation)               \n")
+            f.write("1   -4.1                      -  lower tail option, parameter              \n")
+            f.write("1   4.1                       -  upper tail option, parameter              \n")
+            f.write("1                             -debugging level: 0,1,2,3                    \n")
+            f.write("debug.dbg                     -file for debugging output                   \n")
+            f.write("sgsout.out                    -file for simulation output                  \n")
+            f.write("1                             -number of realizations to generate          \n")
+            f.write("335 0.5 " + str(cellsize) + " - nx xmn xsiz                                \n")
+            f.write("335 0.5 " + str(cellsize) + " - ny ymn ysiz                                \n")
+            f.write("1 0.0 1.0                     - nz zmn zsiz                                \n")
+            f.write(str(seed) + "                  -random number seed                          \n")
+            f.write("0     12                      -min and max original data for sim           \n")
+            f.write("18                            -number of simulated nodes to use            \n")
+            f.write("0                             -assign data to nodes (0=no, 1=yes)          \n")
+            f.write("1     3                       -multiple grid search (0=no, 1=yes),num      \n")
+            f.write("0                             -maximum data per octant (0=not used)        \n")
+            f.write(str(max_range) + " " + str(max_range) + " 1.0 -maximum search  (hmax,hmin,vert) \n")
+            f.write(str(azi1) + "   0.0   0.0       -angles for search ellipsoid                 \n")
+            f.write(str(searchrad) + " " + str(searchrad) + " 1 -size of covariance lookup table\n")
+            f.write("1     0.60   1.0              -ktype: 0=SK,1=OK,2=LVM,3=EXDR,4=COLC        \n")
+            f.write("none.dat                      -  file with LVM, EXDR, or COLC variable     \n")
+            f.write("4                             -  column for secondary variable             \n")
+            f.write(str(nst) + " " + str(nug) + "  -nst, nugget effect                          \n")
+            f.write(str(it1) + " " + str(cc1) + " " + str(azi1) + " 0.0 0.0 -it,cc,ang1,ang2,ang3\n")
+            f.write(" " + str(max_range) + " " + str(max_range) + " 1.0 - a_hmax, a_hmin, a_vert \n")
+
+        sp.run("sgsim.exe sgsim.par", stdout = sp.DEVNULL)
+        result[:, i] += np.asarray(pd.read_csv('sgsout.out', header = 2)).reshape(112225)
+        if i == 10 and if_show == 1:
+            plt.imshow(result[:, i].reshape(335, 335), cmap = 'jet', origin = 'lower', vmax = 4.1, vmin = -4.1)
+            plt.title("SGSim result with landmarks")
+            plt.colorbar()
+            plt.scatter(input[:, 0], input[:, 1], c = input[:, 12], cmap = "jet", s = 20, edgecolor = '0.5', vmax = 4.1, vmin = -4.1)
+            plt.xlim([0, 335])
+            plt.ylim([0, 335])
+            plt.show()
     return result
 
 
@@ -301,8 +319,8 @@ def de_cdf(anchors, anchors_cdf, data):
         rank = np.hstack(
             (anchors[:, ele].reshape((-1, 1)), anchors_cdf[:, ele].reshape((-1, 1))))  # 0-real value 1-cdf value
         rank = rank[rank[:, 1].argsort()]
-        bottom = 2*rank[0, 0]-rank[1, 0]
-        top = 2*rank[-1, 0]-rank[-2, 0]
+        bottom = 2 * rank[0, 0] - rank[1, 0]
+        top = 2 * rank[-1, 0] - rank[-2, 0]
         rank = np.vstack(([bottom, 0], rank, [top, 1]))
         data_sorted = np.hstack((data[:, ele].reshape([-1, 1]), np.arange(data.shape[0]).reshape([-1, 1])))
         data_sorted = data_sorted[data_sorted[:, 0].argsort()]
@@ -311,12 +329,14 @@ def de_cdf(anchors, anchors_cdf, data):
                 if data_sorted[idx, 0] == rank[i, 1]:
                     data_decdf[idx, ele] = rank[i, 0]
                 else:
-                    data_decdf[idx, ele] = (rank[i+1, 0] - rank[i, 0]) / (rank[i+1, 1] - rank[i, 1]) * (data_sorted[idx, 0] - rank[i, 1])+rank[i, 0]
+                    data_decdf[idx, ele] = (rank[i + 1, 0] - rank[i, 0]) / (rank[i + 1, 1] - rank[i, 1]) * (
+                            data_sorted[idx, 0] - rank[i, 1]) + rank[i, 0]
             else:
                 i += 1
                 data_decdf[idx, ele] = rank[i, 0]
         data_decdf[:, ele] = data_decdf[data_sorted[:, 1].argsort(), ele]
     return data_decdf
+
 
 def lgt(data, typ):
     mf_logit = np.empty(data.shape)
