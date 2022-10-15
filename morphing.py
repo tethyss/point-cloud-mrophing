@@ -3,7 +3,7 @@ from tqdm import trange
 import probscale
 from sklearn.neighbors import KNeighborsRegressor as knn
 
-if_test = False  # 0-full data 1-two dim data
+if_test = True  # 0-full data 1-two dim data
 if if_test:
     channel = 2
     show = [2, 3]  # config for show
@@ -64,7 +64,7 @@ for epoch in trange(epochs):
     mf_sim = sgs(mf_raw, if_show=if_show)
 
     'calculate variogram of SGSim'
-    mf_variogram[:, :, epoch] = variogram_calculation(mf_raw, lag=1, steps=nlag, tol=1, channels=25)
+    mf_variogram[:, :, epoch] = variogram_calculation(data, lag=1, steps=nlag, tol=.5, channels=25)
     sim_variogram[:, :, epoch] = variogram_gam(np.hstack((loc, mf_sim)), grid=[335, 335], cellsize=1, nlag=nlag)
     plot_variogram(mf_variogram[:, :, epoch], color="red")
     plot_variogram(sim_variogram[:, :, epoch])
