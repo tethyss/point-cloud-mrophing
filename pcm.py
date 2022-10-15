@@ -12,7 +12,7 @@ if __name__ == "__main__":
                  '25': 'Zr'}
     show = 1
     data, landmarks = read_data(plot=0)
-    landmarks_cdf = convert_to_cdf(np.copy(landmarks))
+    landmarks_cdf = convert_to_cdf(np.copy(landmarks), )
     # FnMat = exhaust_variogram(data[:,2:])
     print("Computing distances")
     M_Dist = np.empty([112225, 112225])
