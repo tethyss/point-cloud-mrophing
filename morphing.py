@@ -12,7 +12,7 @@ else:
     show = [12, 17]
 
 epochs = 200  # simulation times
-nlm = 10  # number of landmarks
+nlm = 561  # number of landmarks
 nlag = 50  # number of lags in variogram
 
 'creat locations for simulation result'
@@ -53,8 +53,8 @@ for epoch in trange(epochs):
     landmark_container[:, :, epoch] = landmarks.copy()
 
     'variogram of mf'
-    mf_variogram[:, :, epoch] = variogram_calculation(mf_raw, lag=1, steps=nlag, tol=.5, channels=channel)
-    variogram_config = variogram_config(mf_variogram)
+    mf_variogram[:, :, epoch] = variogram_calculation(landmarks, lag=1, steps=nlag, tol=.5, channels=channel)
+    variogram_model = variogram_config(mf_variogram[:, :, epoch].copy())
 
     'Cumulative distribution of landmarks'
     landmarks_cdf = data_cdf[int(epoch * nlm):int(epoch * nlm + nlm), :]

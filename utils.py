@@ -83,55 +83,38 @@ def variogram_gam(data, grid, cellsize, nlag):
     return gamma
 
 
-def variogram_gamv(data, grid, cellsize, nlag):
-    a2g(data, "gamv.dat")
-    with open("gamv.par", "w") as f:
-        f.write("                         Parameters for GAMV                                 \n")
-        f.write("                         *******************                                 \n")
-        f.write("                                                                             \n")
-        f.write("START OF PARAMETERS:                                                         \n")
-        f.write("gamv.dat                                 -file with data                      \n")
-        f.write("25 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 -number of var.,col numbers\n")
-        f.write("-1.0e21     1.0e21                      -trimming limits                     \n")
-        f.write("gam_out.out                             -file for variogram output           \n")
-        f.write("1                                       -grid or realization number          \n")
-        f.write(str(grid[0]) + " 0.5 " + str(cellsize) + " -nx, xmn, xsiz                       \n")
-        f.write(str(grid[1]) + " 0.5 " + str(cellsize) + " -ny, ymn, ysiz                       \n")
-        f.write("1 0 0                                   -nz, zmn, zsiz                       \n")
-        f.write("1 " + str(nlag) + "                     -number of directions, number of lags\n")
-        f.write("1  0  0                                 -ixd(1),iyd(1),izd(1)                \n")
-        f.write("0                                       -standardize sill? (0=no, 1=yes)     \n")
-        f.write("325                                     -number of variograms                \n")
-        for v1 in range(1, 26):
-            for v2 in range(v1, 26):
-                f.write(str(v1) + " " + str(v2) + " 2      -tail, head, variogram type  \n")
-    sp.run("gam.exe gam.par", stdout=sp.DEVNULL)
-
-    lag = np.arange(1, int(nlag + 1), dtype=float).reshape((nlag, 1))
-    i = -1
-    gamma = np.empty((nlag, 325))
-    with open("gam_out.out") as f:
-        for line in f:
-            if line[0] == "C":
-                i += 1
-                n = 0
-            else:
-                _, _, g, *_ = line.split()
-                gamma[n, i] = float(g)
-                n += 1
-    gamma = np.hstack((lag, lag, gamma))
+def variogram_calculation(data, lag, steps, tol, channels):
+    dist_matrix = ot.dist(data[:, :2], data[:, :2], metric='euclidean')
+    'variogram structure: 0: Average distance; 1: counts in lag.'
+    variogram = np.zeros((steps, int(2 + channels * (channels + 1) / 2)))
+    for i_Step in range(steps):
+        print("i_Step :", i_Step + 1)
+        x_pos, y_pos = np.where((dist_matrix > lag * (i_Step + 1) - tol) & (dist_matrix < lag * (i_Step + 1) + tol))
+        for j in range(len(x_pos)):
+            x_j, y_j = x_pos[j], y_pos[j]
+            variogram[i_Step, 1] += 1  # count
+            variogram[i_Step, 0] += dist_matrix[x_j, y_j]  # average dist
+            dif_j = data[x_j, 2:] - data[y_j, 2:]
+            pos = 2
+            for c in range(channels):
+                variogram[i_Step, int(pos):int(pos + len(dif_j[c:]))] += dif_j[c] * dif_j[c:]
+                pos += len(dif_j[c:])
+        variogram[i_Step, 2:] = variogram[i_Step, 2:] / (2 * variogram[i_Step, 1])
+        variogram[i_Step, 0] = variogram[i_Step, 0] / variogram[i_Step, 1]  # Average distance
+        variogram[i_Step, 1] = variogram[i_Step, 1] / 2  # Without duplicates
     return variogram
 
 
 def variogram_config(variogram):
     nug = np.empty(variogram.shape[1] - 2)
 
-    def func(x, a, b, c):
-        return a * x ** 2 + b * x + c
+    def func(x, a, c):
+        # return a * x ** 2 + b * x + c
+        return a * x + c
 
-    for dim in range(2, sum(range(1, variogram.shape[1] + 1)) + 2):
-        popt, _ = curve_fit(func, variogram[:4, dim], variogram[:4, dim])
-        nug[dim - 2] = popt[2]
+    for dim in range(2, sum(range(1, variogram.shape[1] - 2))+2):
+        popt, _ = curve_fit(func, variogram[:2, 0], variogram[:2, dim])
+        nug[dim - 2] = popt[1]
     return nug
 
 
