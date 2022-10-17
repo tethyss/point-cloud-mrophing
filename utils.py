@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import preprocessing
 from scipy.spatial.distance import cdist  # type: ignore
+from scipy.optimize import curve_fit
 import random
 import ot
 import subprocess as sp
@@ -104,6 +105,18 @@ def variogram_calculation(data, lag, steps, tol, channels):
     return variogram
 
 
+def variogram_config(variogram):
+    nug = np.empty(variogram.shape[1] - 2)
+
+    def func(x, a, b, c):
+        return a * x ** 2 + b * x + c
+
+    for dim in range(2, sum(range(1, variogram.shape[1] + 1)) + 2):
+        popt, _ = curve_fit(func, variogram[:4, dim], variogram[:4, dim])
+        nug[dim - 2] = popt[2]
+    return nug
+
+
 def a2g(rawdata, file):
     columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
                'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
@@ -192,12 +205,12 @@ def plot_cross_variogram(variogram):
 
 
 def transport(lm_cdf, if_show=False, show_config=None):
-    x = np.empty(lm_cdf.shape)
-    for e in range(lm_cdf.shape[1]):
+    x = lm_cdf.copy()
+    for e in range(2, lm_cdf.shape[1]):
         x[:, e] = np.random.normal(0, 1, lm_cdf.shape[0])
     a, b = np.ones((len(lm_cdf),)) / len(lm_cdf), np.ones((len(lm_cdf),)) / len(lm_cdf)
     x_cdf = convert_to_cdf(x.copy(), show_config=show_config, if_show=if_show, color='r')
-    dist_matrix = ot.dist(lm_cdf, x_cdf)
+    dist_matrix = ot.dist(lm_cdf[:, 2:], x_cdf[:, 2:])
     pair = ot.emd(a, b, dist_matrix)
     x_cdf = x_cdf[np.nonzero(pair)[1]]
     x = x[np.nonzero(pair)[1]]
@@ -213,10 +226,13 @@ def transport(lm_cdf, if_show=False, show_config=None):
     return x, x_cdf
 
 
-def sgs(input, if_show=0):
-    result = np.zeros((335 * 335, 25))
+def sgs(input, if_show):
+    dim = input.shape[1]
+    result = np.zeros((335 * 335, dim))
+    result[:, :2] = np.hstack(
+        (np.tile(np.arange(1, 336), 335).reshape((-1, 1)), np.repeat(np.arange(1, 336), 335).reshape((-1, 1))))
     a2g(input, "data4sim.dat")
-    for i in range(25):
+    for i in range(2, dim):
         seed = random.randint(11111, 99999)
         cellsize = 1
         nug = 0.0
@@ -233,7 +249,7 @@ def sgs(input, if_show=0):
             f.write("                                                                           \n")
             f.write("START OF PARAMETER:                                                        \n")
             f.write("data4sim.dat                  -file with data                              \n")
-            f.write("1  2  0 " + str(i + 3) + "  0  0 -  columns for X,Y,Z,vr,wt,sec.var.          \n")
+            f.write("1  2  0 " + str(i + 1) + "  0  0 -  columns for X,Y,Z,vr,wt,sec.var.          \n")
             f.write("-1.0e21 1.0e21                -  trimming limits                           \n")
             f.write("1                             -transform the data (0=no, 1=yes)            \n")
             f.write("none.trn                      -  file for output trans table               \n")
@@ -268,11 +284,14 @@ def sgs(input, if_show=0):
 
         sp.run("sgsim.exe sgsim.par", stdout=sp.DEVNULL)
         result[:, i] += np.asarray(pd.read_csv('sgsout.out', header=2)).reshape(112225)
-        if i == 10 and if_show == 1:
-            plt.imshow(result[:, i].reshape(335, 335), cmap='jet', origin='lower', vmax=4.1, vmin=-4.1)
+        if if_show:
+            c_for_show = 10
+            if dim == 2:
+                c_for_show = 3
+            plt.imshow(result[:, c_for_show].reshape(335, 335), cmap='jet', origin='lower', vmax=4.1, vmin=-4.1)
             plt.title("SGSim result with landmarks")
             plt.colorbar()
-            plt.scatter(input[:, 0], input[:, 1], c=input[:, 12], cmap="jet", s=20, edgecolor='0.5', vmax=4.1,
+            plt.scatter(input[:, 0], input[:, 1], c=input[:, c_for_show], cmap="jet", s=20, edgecolor='0.5', vmax=4.1,
                         vmin=-4.1)
             plt.xlim([0, 335])
             plt.ylim([0, 335])

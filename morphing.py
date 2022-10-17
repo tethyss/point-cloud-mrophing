@@ -12,7 +12,7 @@ else:
     show = [12, 17]
 
 epochs = 200  # simulation times
-nlm = 561  # number of landmarks
+nlm = 10  # number of landmarks
 nlag = 50  # number of lags in variogram
 
 'creat locations for simulation result'
@@ -30,7 +30,7 @@ else:
 order = np.arange(data.shape[0])
 np.random.shuffle(order)
 data = data[order, :]
-data_cdf = convert_to_cdf(data.copy(), show_config=show, if_show=1)
+data_cdf = convert_to_cdf(data.copy(), show_config=show, if_show=0)
 
 'creat containers'
 landmark_container = np.empty((nlm, 2+channel, epochs))  # loc+value
@@ -52,6 +52,10 @@ for epoch in trange(epochs):
     landmarks = data[int(epoch * nlm):int(epoch * nlm + nlm), :]
     landmark_container[:, :, epoch] = landmarks.copy()
 
+    'variogram of mf'
+    mf_variogram[:, :, epoch] = variogram_calculation(mf_raw, lag=1, steps=nlag, tol=.5, channels=channel)
+    variogram_config = variogram_config(mf_variogram)
+
     'Cumulative distribution of landmarks'
     landmarks_cdf = data_cdf[int(epoch * nlm):int(epoch * nlm + nlm), :]
     landmark_cdf_container[:, :, epoch] = landmarks_cdf.copy()
@@ -60,11 +64,10 @@ for epoch in trange(epochs):
     mf_raw, mf_cdf = transport(landmarks_cdf.copy(), if_show=if_show, show_config=show)
 
     'Sequential gaussian simulation'
-    mf_raw = np.hstack((landmarks[:, :2], mf_raw))  # add location
-    mf_sim = sgs(mf_raw, if_show=if_show)
+    mf_sim = sgs(mf_raw.copy(), if_show=if_show)
 
     'calculate variogram of SGSim'
-    mf_variogram[:, :, epoch] = variogram_calculation(data, lag=1, steps=nlag, tol=.5, channels=25)
+
     sim_variogram[:, :, epoch] = variogram_gam(np.hstack((loc, mf_sim)), grid=[335, 335], cellsize=1, nlag=nlag)
     plot_variogram(mf_variogram[:, :, epoch], color="red")
     plot_variogram(sim_variogram[:, :, epoch])
