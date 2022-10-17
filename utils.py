@@ -92,8 +92,8 @@ def variogram_calculation(data, lag, steps, tol, channels):
         x_pos, y_pos = np.where((dist_matrix > lag * (i_Step + 1) - tol) & (dist_matrix < lag * (i_Step + 1) + tol))
         for j in range(len(x_pos)):
             x_j, y_j = x_pos[j], y_pos[j]
-            variogram[i_Step, 1] += 1
-            variogram[i_Step, 0] += dist_matrix[x_j, y_j]
+            variogram[i_Step, 1] += 1  # count
+            variogram[i_Step, 0] += dist_matrix[x_j, y_j]  # average dist
             dif_j = data[x_j, 2:] - data[y_j, 2:]
             pos = 2
             for c in range(channels):
@@ -108,12 +108,13 @@ def variogram_calculation(data, lag, steps, tol, channels):
 def variogram_config(variogram):
     nug = np.empty(variogram.shape[1] - 2)
 
-    def func(x, a, b, c):
-        return a * x ** 2 + b * x + c
+    def func(x, a, c):
+        # return a * x ** 2 + b * x + c
+        return a * x + c
 
-    for dim in range(2, sum(range(1, variogram.shape[1] + 1)) + 2):
-        popt, _ = curve_fit(func, variogram[:4, dim], variogram[:4, dim])
-        nug[dim - 2] = popt[2]
+    for dim in range(2, sum(range(1, variogram.shape[1] - 2))+2):
+        popt, _ = curve_fit(func, variogram[:2, 0], variogram[:2, dim])
+        nug[dim - 2] = popt[1]
     return nug
 
 
