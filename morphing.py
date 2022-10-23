@@ -1,87 +1,74 @@
 from utils import *
-from tqdm import trange
+from tqdm import trange, tqdm
 import probscale
 from sklearn.neighbors import NearestNeighbors
 
-if_test = False  # 0-full data 1-two dim data
-if if_test:
-    channel = 2
-    show = [2, 3]  # config for show
-else:
-    channel = 25
-    show = [12, 17]
-
 epochs = 100  # simulation times
 nlm = 1122  # number of landmarks
+lag = 4
 nlag = 50  # number of lags in variogram
+mf_repeat = 100
 
 'creat locations for simulation result'
 loc = np.hstack((np.tile(np.arange(1, 336), 335).reshape((-1, 1)), np.repeat(np.arange(1, 336), 335).reshape((-1, 1))))
 
 'read origin data'
-rawdata = pd.read_csv('./data.csv', header = 0)
-rawdata = rawdata.values
-rawdata[:, 2:27] = preprocessing.scale(rawdata[:, 2:27])
-if if_test:
-    data = rawdata[:, [0, 1, 12, 17]]
-else:
-    data = rawdata[:, :(2 + channel)]
-
-'variogram of dataset'
-exhausted_variogram = variogram_gam(data, [335, 335], 1, 50)
-variogram_model = variogram_config(exhausted_variogram.copy())
-plot_variogram(exhausted_variogram, name = 'variogram of rawdata by gam', color = 'k', vmodel = variogram_model)
-np.savetxt("./variogram of data/variogram of rawdata by gam.csv", exhausted_variogram)
+data, show = read_data(test = True)
 
 'shuffle data'
-order = np.arange(data.shape[0])
-np.random.shuffle(order)
-data = data[order, :]
-data_cdf = convert_to_cdf(data.copy(), show_config = show, if_show = 0)
+np.random.shuffle(data)
 
 'creat containers'
-landmark_container = np.empty((nlm, 2 + channel, epochs))  # loc+value
-landmark_cdf_container = np.empty((nlm, 2 + channel, epochs))
-sim_container = np.empty((nlm, 2 + channel, epochs))  # loc+value
-sim_cdf_container = np.empty((nlm, 2 + channel, epochs))
-mf_variogram = np.empty((nlag, sum(range(1, channel + 1)) + 2, epochs))
-sim_variogram = np.empty((nlag, sum(range(1, channel + 1)) + 2, epochs))
-result_container = np.empty((335 * 335, 2 + channel, epochs))  # simulation result container
-result_cdf_container = np.empty((335 * 335, 2 + channel, epochs))
-variogram = np.empty((nlag, sum(range(1, channel + 1)) + 2, epochs))
+sim_container = np.empty((nlm, data.shape[1], epochs))  # loc+value
+sim_cdf_container = np.empty((nlm, data.shape[1], epochs))
+mf_variogram = np.empty((nlag, sum(range(1, data.shape[1] - 1)) + 2, epochs))
+sim_variogram = np.empty((nlag, sum(range(1, data.shape[1] - 1)) + 2, epochs))
+result_container = np.empty((335 * 335, data.shape[1], epochs))  # simulation result container
+result_cdf_container = np.empty((335 * 335, data.shape[1], epochs))
+variogram = np.empty((nlag, sum(range(1, data.shape[1] - 1)) + 2, epochs))
 
-for epoch in trange(epochs):
+for epoch in tqdm(range(epochs), position = 0, leave = False):
     if_show = False
     if epoch <= 6:
         if_show = True
 
     "random landmarks"
     landmarks = data[int(epoch * nlm):int(epoch * nlm + nlm), :]
-    landmark_container[:, :, epoch] = landmarks.copy()
+    landmarks[:, 2:] = preprocessing.scale(landmarks[:, 2:])
 
     'variogram of landmarks'
-    lm_variogram = variogram_gamv(landmarks, cellsize = 1, nlag = nlag, azm = 0, atol = 180, bandh = 25)
+    lm_variogram = variogram_gamv(landmarks, cellsize = lag, nlag = nlag, azm = 0, atol = 180, dbglevel = 0)
     if epoch < 6:
-        plot_variogram(lm_variogram, name = 'variogram of lm epoch ' + str(epoch))
+        plot_variogram(lm_variogram, names = ['Fe', 'Fe-Mn', 'Mn'],
+                       name = 'variogram of landmarks-epoch ' + str(epoch), color = 'r')
 
     'Cumulative distribution of landmarks'
-    landmarks_cdf = data_cdf[int(epoch * nlm):int(epoch * nlm + nlm), :]
-    landmark_cdf_container[:, :, epoch] = landmarks_cdf.copy()
+    landmarks_cdf = convert_to_cdf(landmarks.copy(), show_config = show, if_show = False, color = 'b')
 
     'Generating MFs'
-    mf_raw, mf_cdf = transport(landmarks_cdf.copy(), if_show = False, show_config = show)
+    mf_raw_container = np.zeros((landmarks.shape[0], landmarks.shape[1], mf_repeat))
+    mf_variogram_container = np.zeros((nlag + 2, sum(range(1, data.shape[1] - 1)) + 2, mf_repeat))
+    for r in tqdm(range(mf_repeat), position = 0):
+        mf_raw, _ = transport(landmarks_cdf.copy(), if_show = False, show_config = show)
+        mf_variogram = variogram_gamv(mf_raw, cellsize = lag, nlag = nlag, azm = 0, atol = 180, dbglevel = 0)
+        mf_raw_container[:, :, r] = mf_raw
+        mf_variogram_container[:, :, r] = mf_variogram
+    mf_ave = np.sum(mf_raw_container, axis = 2) / mf_repeat
+    variogram_ave = np.sum(mf_variogram_container, axis = 2) / mf_repeat
+    mf_variogram = variogram_gamv(mf_ave, cellsize = lag, nlag = nlag, azm = 0, atol = 180, dbglevel = 0)
+    vmodel = variogram_config(variogram_ave)
+    v_models = create_vmodel(vmodel, lag, nlag)
+    plot_variogram1([mf_variogram_container, variogram_ave, v_models], names = ['MF1', 'MF1-MF2', 'MF2'],
+                    name = 'variogram-epoch ' + str(epoch))
 
-    'variogram of morphing factors'
-    mf_variogram = variogram_gamv(mf_raw, cellsize = 1, nlag = nlag, azm = 0, atol = 180, bandh = 25)
-    plot_variogram(mf_variogram, name = 'variogram of mf epoch ' + str(epoch), color = 'r')
 
     'Sequential gaussian simulation'
-    mf_sim = sgs(mf_raw.copy(), if_show = if_show, vmodel = variogram_model)
+    mf_sim = sgs(mf_ave.copy(), if_show = if_show, vmodel = vmodel)
 
     'calculate variogram of SGSim'
-    sim_variogram[:, :, epoch] = variogram_gam(mf_sim, grid = [335, 335], cellsize = 1, nlag = nlag)
+    sim_variogram[:, :, epoch] = variogram_gam(mf_sim, cellsize = lag, nlag = nlag)
     if epoch < 6:
-        plot_variogram(sim_variogram[:, :, epoch], name = 'variogram of sim result epoch ' + str(epoch))
+        plot_variogram(sim_variogram[:, :, epoch], name = 'variogram of sim result-epoch ' + str(epoch))
 
     'TPS'
     mf_sim_cdf = convert_to_cdf(mf_sim.copy(), show_config = show, if_show = False)
@@ -89,17 +76,18 @@ for epoch in trange(epochs):
     lm_cdf_lgt = lgt(landmarks_cdf.copy(), typ = 1)
     mf_sim_cdf_lgt = lgt(mf_sim_cdf.copy(), typ = 1)
     result_cdf_lgt = mf_sim_cdf_lgt.copy()
-    nbrs = NearestNeighbors(n_neighbors = 30, algorithm = 'auto').fit(lm_cdf_lgt[:, :2])
+    nbrs = NearestNeighbors(n_neighbors = 90, algorithm = 'auto').fit(lm_cdf_lgt[:, :2])
     for idx, x in enumerate(mf_sim_cdf_lgt[:, :2]):
-        if x % 1000 == 0:
-            print('transforming:' + str(x))
         tps = ThinPlateSpline()
         _, indices = nbrs.kneighbors([x])
         tps.fit(mf_cdf_lgt[indices, 2:].reshape(30, -1), lm_cdf_lgt[indices, 2:].reshape(30, -1))
         result_cdf_lgt[idx, 2:] = tps.transform(mf_sim_cdf_lgt[idx, 2:].reshape(1, -1))
     result_cdf = lgt(result_cdf_lgt.copy(), typ = -1)
     result = de_cdf(landmarks[:, 2:], landmarks_cdf[:, 2:], result_cdf[:, 2:])
-    if if_show == 1:
+    result = np.hstack((result_cdf[:, :2], result))
+    result1 = result[np.lexsort((result[:, 0], result[:, 1])), :].copy()
+    result.argsort()
+    if if_show:
         plt.imshow(result[:, 10].reshape(335, 335), cmap = 'jet', origin = 'lower')
         plt.colorbar()
         plt.title("SMMT result")
@@ -113,7 +101,8 @@ for epoch in trange(epochs):
     result_cdf_container[:, :, epoch] = result_cdf.copy()
 
     print('computing variogram')
-    variogram[:, :, epoch] = variogram_gam(result, grid = [335, 335], cellsize = 1, nlag = nlag)
+    variogram[:, :, epoch] = variogram_gam(result, cellsize = 1, nlag = nlag)
+    plot_variogram(variogram[:, :, epoch], name = 'variogram of result epoch ' + str(epoch))
 
 'calculate result variogram'
 plot_variogram(variogram)
