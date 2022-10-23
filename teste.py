@@ -1,15 +1,25 @@
-import numpy as np
 
-from utils import *
-
-"""read data
-    :arg test:True for tset set
-    :return data, show config
-"""
-rawdata = pd.read_csv('./data.csv', header = 0)
-rawdata = rawdata.values
-rawdata1 = preprocessing.scale(rawdata[:, 2:27])
-
-rawdata2 = (rawdata[:, 2:27]-np.mean(rawdata[:, 2:27]))/np.std(rawdata[:, 2:27])
-
-pass
+with open("gamv.par", "w") as f:
+    f.write("                         Parameters for GAMV                                 \n")
+    f.write("                         *******************                                 \n")
+    f.write("START OF PARAMETERS:                                                         \n")
+    f.write("                                                                             \n")
+    f.write("START OF MAIN:                                                               \n")
+    f.write("0.0  0.0  0.0  -directions: ang1,2,3 (GSLIB definition)                      \n")
+    f.write("1  -number of variables                                                      \n")
+    f.write("2  -number of nested structures                                              \n")
+    f.write("0  -inverse distance weighting (0=no, 1=yes)                                 \n")
+    f.write("0  -number of pairs weighting (0=no, 1=yes)                                  \n")
+    f.write("10  -minimum number of pairs to use                                          \n")
+    f.write("5000  -number of iterations                                                  \n")
+    f.write("varfit.ps  -file for PostScript output                                       \n")
+    f.write("varfit.var  -file for variogram model(s)                                     \n")
+    f.write("                                                                             \n")
+    f.write("START OF VARIOGRAMS SPECIFICATION:                                           \n")
+    f.write("1 1 1 1 -ivar1, ivar2, idir, ivarn                                           \n")
+    f.write("gamv_out.out  - variogram file                                               \n")
+    f.write("Fe Semivariogram   - variogram title                                         \n")
+    f.write("                                                                             \n")
+    f.write("START OF PAGE TITLES:                                                        \n")
+    f.write("1 1  -ivar1, ivar2                                                           \n")
+    f.write("Fe Variogram  -title                                                         \n")
