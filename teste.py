@@ -22,4 +22,5 @@ def vmodel(variogram, guess=[10, 110, 0.85]):
         parameters[i-2], _ = curve_fit(exponential_two, x, y, p0=guess)
     return parameters
 
+
 pass
