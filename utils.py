@@ -99,7 +99,7 @@ def variogram_config(variogram):
 
     for dim in range(2, variogram.shape[1]):
         nug[dim - 2] = max((2 * variogram[1, dim] - variogram[2, dim]), 0)
-        if max(variogram[:, dim]) >= 1:
+        if max(variogram[:, dim]) >= 10:
             'reach'
             max_r[dim - 2] = variogram[np.where(variogram[:, dim] >= 1)[0][0], 0]
         else:
@@ -160,8 +160,8 @@ def create_vmodel(vmodel, lag, nlag):
             f.write("1 " + str(nlag) + "                         -number of directions and lags      \n")
             f.write("0.0   0.0   " + str(lag) + "                -azm, dip, lag distance             \n")
             f.write("1 " + str(v[0]) + "                         -nst, nugget effect                 \n")
-            f.write("1    1  0.0   0.0   0.0                     -it,cc,ang1,ang2,ang3               \n")
-            f.write(str(v[1]) + " " + str(v[1]) + " 0.0          -a_hmax, a_hmin, a_vert             \n")
+            f.write("1 " + str(1-v[0]) + " 0.0   0.0   0.0       -it,cc,ang1,ang2,ang3               \n")
+            f.write(str(v[1]*lag) + " " + str(v[1]*lag) + " 0.0  -a_hmax, a_hmin, a_vert             \n")
         sp.run("vmodel.exe vmodel.par")
         vmodels[:, idx+2] = g2a('vmodel.out', nlag, vmodel.shape[0])[:, 2]
         vmodels[:, :2] = g2a('vmodel.out', nlag, vmodel.shape[0])[:, :2]
@@ -476,3 +476,8 @@ def lgt(data, typ):
             else:
                 mf_logit[idx, i] = math.exp(x) / (1 + math.exp(x))
     return mf_logit
+
+
+def varfit():
+    pass
+
