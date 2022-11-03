@@ -1,7 +1,5 @@
 from utils import *
-from tqdm import trange, tqdm
 import probscale
-from sklearn.neighbors import NearestNeighbors
 
 if __name__ == '__main__':
     epochs = 1  # simulation times
@@ -71,56 +69,21 @@ if __name__ == '__main__':
             result_container[:, :, r] = mf_sim
             'calculate variogram of SGSim'
             sim_variogram[:, :, r] = variogram_gam(mf_sim, cellsize = lag, nlag = nlag)
-        if epoch < 6:
+        if if_show:
             plot_variogram([sim_variogram, variogram_ave], y_label = y_label,
                            line_label = ['simulation', 'average'], colors = ['orange', 'r'],
                            alphas = [0.5, 1], title = 'variogram of morphing factors-epoch ' + str(epoch),
                            vmodel = model)
-
         'TPS'
-        mf_cdf = convert_to_cdf(mf_raw.copy(), show_config = show, if_show = False)
-        mf_sim_cdf = convert_to_cdf(mf_sim.copy(), show_config = show, if_show = False)
-        mf_cdf_lgt = lgt(mf_cdf.copy(), typ = 1)
-        lm_cdf_lgt = lgt(landmarks_cdf.copy(), typ = 1)
-        mf_sim_cdf_lgt = lgt(mf_sim_cdf.copy(), typ = 1)
-        result_cdf_lgt = mf_sim_cdf_lgt.copy()
-        mf_base = mf_cdf_lgt.copy()
-        lm_base = lm_cdf_lgt.copy()
-        np.random.shuffle(mf_sim_cdf_lgt)
-        for idx, x in enumerate(tqdm(mf_sim_cdf_lgt[:, :2], position = 0, leave = False)):
-            if not max(np.all(lm_base[:, :2] == x, axis = 1)):
-                nbrs = NearestNeighbors(n_neighbors = k, algorithm = 'auto').fit(lm_base[:, :2])
-                tps = ThinPlateSpline()
-                _, indices = nbrs.kneighbors([x])
-                tps.fit(mf_base[indices, 2:].reshape(k, -1), lm_base[indices, 2:].reshape(k, -1))
-                result_cdf_lgt[idx, 2:] = tps.transform(mf_sim_cdf_lgt[idx, 2:].reshape(1, -1))
-                mf_base = np.vstack((mf_base, mf_sim_cdf_lgt[idx]))
-                lm_base = np.vstack((lm_base, result_cdf_lgt[idx]))
-        result_cdf = lgt(result_cdf_lgt.copy(), typ = -1)
-        result = de_cdf(landmarks[:, 2:], landmarks_cdf[:, 2:], result_cdf[:, 2:])
-        result = np.hstack((result_cdf[:, :2], result))
-        result1 = result[np.lexsort((result[:, 0], result[:, 1])), :].copy()
-        result.argsort()
-        test = convert_to_cdf(result.copy(), show_config = show, if_show = True)
-        if if_show:
-            plt.imshow(result[:, 2].reshape(335, 335), cmap = 'jet', origin = 'lower')
-            plt.colorbar()
-            plt.title("SMMT result")
-            plt.show()
-            plt.imshow(rawdata[:, 2].reshape(335, 335), cmap = 'jet', origin = 'lower',
-                       vmax = np.max(result[:, 2]), vmin = np.min(result[:, 2]))
-            plt.colorbar()
-            plt.title("Original data")
-            plt.show()
+        result, result_cdf = TPS(mf_sim, mf_raw, landmarks, landmarks_cdf, rawdata
+                                 , knn = k, if_show = if_show, show = show)
+
         result_container[:, :, epoch] = result.copy()
         result_cdf_container[:, :, epoch] = result_cdf.copy()
 
-        # print('computing variogram')
-        # variogram[:, :, epoch] = variogram_gam(result, cellsize = 1, nlag = nlag)
-        # plot_variogram(variogram[:, :, epoch], name = 'variogram of result epoch ' + str(epoch))
+
 
     # 'calculate result variogram'
-    # plot_variogram(variogram)
     #
     # 'show pdf'
     # common_opts = dict(

@@ -11,6 +11,8 @@ import math
 from scipy import interpolate
 from scipy.optimize import curve_fit
 from multiprocessing import Pool
+from sklearn.neighbors import NearestNeighbors
+from tqdm import trange, tqdm
 
 
 def read_data(test):
@@ -234,11 +236,13 @@ def plot_variogram(variograms, y_label, line_label, colors, alphas, title, vmode
                     axs[int(i % 5), int(i / 5)].legend()
         if vmodel is not None:
             for i in range(25):
-                axs[int(i % 5), int(i / 5)].plot(variogram[1:, 0, 0], exponential_two(variogram[1:, 0, 0], vmodel[i, 0], vmodel[i, 1],vmodel[i, 2], vmodel[i, 3])
+                axs[int(i % 5), int(i / 5)].plot(variogram[1:, 0, 0],
+                                                 exponential_two(variogram[1:, 0, 0], vmodel[i, 0], vmodel[i, 1],
+                                                                 vmodel[i, 2], vmodel[i, 3])
                                                  , c = 'k', label = 'model', linewidth = 0.8)
         plt.savefig('./variogram of data/' + title + '-direct.png')
         'cross variogram'
-        v = list(set(np.arange(2, 327))-set([int((51 - i) * i / 2 + 2) for i in range(25)]))
+        v = list(set(np.arange(2, 327)) - set([int((51 - i) * i / 2 + 2) for i in range(25)]))
         random.shuffle(v)
         fig, axs = plt.subplots(5, 5, figsize = (17, 14))
         plt.suptitle(title, size = 20)
@@ -307,12 +311,12 @@ def sgs(input, if_show, vmodel):
     for i in range(2, dim):
         parname = './exe/sgsim' + str(i - 2) + '.par'
         seed = random.randint(11111, 99999)
-        nug = vmodel[int(i-2), 0]
+        nug = vmodel[int(i - 2), 0]
         it1 = 2
-        cc1 = vmodel[int(i-2), 3]
+        cc1 = vmodel[int(i - 2), 3]
         azi1 = 90.0
-        range1 = vmodel[int(i-2), 1]
-        range2 = vmodel[int(i-2), 2]
+        range1 = vmodel[int(i - 2), 1]
+        range2 = vmodel[int(i - 2), 2]
 
         with open(parname, "w") as f:
             f.write("              Parameters for SGSIM                                         \n")
@@ -480,8 +484,45 @@ def vmodel(variogram, guess=None):
     else:
         parameters = np.zeros((25, 4))
     for i in range(parameters.shape[0]):
-        v = int((2*parameters.shape[0]+1-i)*i/2)
-        y = variogram[1:, v+2]
+        v = int((2 * parameters.shape[0] + 1 - i) * i / 2)
+        y = variogram[1:, v + 2]
         parameters[i], _ = curve_fit(exponential_two, x, y, p0 = guess, bounds = (0, 335))
     return parameters
 
+
+def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show):
+    mf_cdf = convert_to_cdf(mf, show_config = show, if_show = False)
+    mf_sim_cdf = convert_to_cdf(sim, show_config = show, if_show = False)
+    mf_cdf_lgt = lgt(mf_cdf.copy(), typ = 1)
+    lm_cdf_lgt = lgt(lm_cdf, typ = 1)
+    mf_sim_cdf_lgt = lgt(mf_sim_cdf.copy(), typ = 1)
+    result_cdf_lgt = mf_sim_cdf_lgt.copy()
+    mf_base = mf_cdf_lgt.copy()
+    lm_base = lm_cdf_lgt.copy()
+    np.random.shuffle(mf_sim_cdf_lgt)
+    for idx, x in enumerate(tqdm(mf_sim_cdf_lgt[:, :2], position = 0, leave = False)):
+        if not max(np.all(lm_base[:, :2] == x, axis = 1)):
+            nbrs = NearestNeighbors(n_neighbors = knn, algorithm = 'auto').fit(lm_base[:, :2])
+            tps = ThinPlateSpline()
+            _, indices = nbrs.kneighbors([x])
+            tps.fit(mf_base[indices, 2:].reshape(knn, -1), lm_base[indices, 2:].reshape(knn, -1))
+            result_cdf_lgt[idx, 2:] = tps.transform(mf_sim_cdf_lgt[idx, 2:].reshape(1, -1))
+            mf_base = np.vstack((mf_base, mf_sim_cdf_lgt[idx]))
+            lm_base = np.vstack((lm_base, result_cdf_lgt[idx]))
+    result_cdf = lgt(result_cdf_lgt.copy(), typ = -1)
+    result = de_cdf(lm[:, 2:], lm_cdf[:, 2:], result_cdf[:, 2:])
+    result = np.hstack((result_cdf[:, :2], result))
+    # result1 = result[np.lexsort((result[:, 0], result[:, 1])), :].copy()
+    result.argsort()
+    test = convert_to_cdf(result.copy(), show_config = if_show, if_show = True)
+    if if_show:
+        plt.imshow(result[:, 2].reshape(335, 335), cmap = 'jet', origin = 'lower')
+        plt.colorbar()
+        plt.title("SMMT result")
+        plt.show()
+        plt.imshow(rawdata[:, 2].reshape(335, 335), cmap = 'jet', origin = 'lower',
+                   vmax = np.max(result[:, 2]), vmin = np.min(result[:, 2]))
+        plt.colorbar()
+        plt.title("Original data")
+        plt.show()
+    return result, result_cdf
