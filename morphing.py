@@ -6,7 +6,7 @@ if __name__ == '__main__':
     nlm = 1122  # number of landmarks
     lag = 4
     nlag = 50  # number of lags in variogram
-    mf_repeat = 1
+    mf_repeat = 10
     k = 30
 
     'creat locations for simulation result'
@@ -20,6 +20,10 @@ if __name__ == '__main__':
     data = rawdata.copy()
     np.random.shuffle(data)
 
+    'calculate variogram for rawdata'
+    rawdata[:, 2:] = preprocessing.scale(rawdata[:, 2:])
+    rawdata_variogram = variogram_gam(rawdata, cellsize = 4, nlag = 50)
+
     'creat containers'
     sim_container = np.empty((nlm, data.shape[1], epochs))  # loc+value
     sim_cdf_container = np.empty((nlm, data.shape[1], epochs))
@@ -28,11 +32,10 @@ if __name__ == '__main__':
     result_container = np.empty((335 * 335, data.shape[1], mf_repeat))  # simulation result container
     result_cdf_container = np.empty((335 * 335, data.shape[1], epochs))
     variogram = np.empty((nlag, sum(range(1, data.shape[1] - 1)) + 2, epochs))
+    result_variogram = np.empty((nlag, sum(range(1, data.shape[1] - 1)) + 2, mf_repeat))
 
-    for epoch in tqdm(range(epochs), position = 0, leave = True):
+    for epoch in range(epochs):
         if_show = False
-        if epoch <= 6:
-            if_show = True
 
         "random landmarks"
         landmarks = data[int(epoch * nlm):int(epoch * nlm + nlm), :]
@@ -46,12 +49,14 @@ if __name__ == '__main__':
                            alphas = [1], title = 'variogram of landmarks-epoch ' + str(epoch), vmodel = None)
 
         'Cumulative distribution of landmarks'
-        landmarks_cdf = convert_to_cdf(landmarks.copy(), show_config = show, if_show = if_show, color = 'b')
+        landmarks_cdf = convert_to_cdf(landmarks.copy(), show_config = show, if_show = False, color = 'b')
 
         'Generating MFs'
         mf_raw_container = np.zeros((landmarks.shape[0], landmarks.shape[1], mf_repeat))
         mf_variogram_container = np.zeros((nlag + 2, sum(range(1, data.shape[1] - 1)) + 2, mf_repeat))
         for r in tqdm(range(mf_repeat), position = 0, leave = True):
+            if r <= 6:
+                if_show = True
             mf_raw, mf_cdf = transport(landmarks_cdf.copy(), if_show = False, show_config = show)
             mf_variogram = variogram_gamv(mf_raw, cellsize = lag, nlag = nlag, azm = 0, atol = 180, dbglevel = 0)
             mf_raw_container[:, :, r] = mf_raw
@@ -64,24 +69,25 @@ if __name__ == '__main__':
                        line_label = ['morphing factor', 'average'], colors = ['orange', 'r'],
                        alphas = [0.5, 1], title = 'variogram of morphing factors-epoch ' + str(epoch), vmodel = model)
         'Sequential gaussian simulation'
+        print("\nsimulating")
         for r in tqdm(range(mf_repeat), position = 0, leave = True):
             mf_sim = sgs(mf_raw_container[:, :, r].copy(), if_show = if_show, vmodel = model)
             result_container[:, :, r] = mf_sim
             'calculate variogram of SGSim'
             sim_variogram[:, :, r] = variogram_gam(mf_sim, cellsize = lag, nlag = nlag)
+            result, result_cdf = TPS(mf_sim, mf_raw_container[:, :, r].copy(), landmarks, landmarks_cdf, rawdata
+                                     , knn = k, if_show = if_show, show = show)
+            result_container[:, :, r] = result.copy()
+            result_variogram[:, :, r] = variogram_gam(result, cellsize = 4, nlag = 50)
         if if_show:
             plot_variogram([sim_variogram, variogram_ave], y_label = y_label,
                            line_label = ['simulation', 'average'], colors = ['orange', 'r'],
-                           alphas = [0.5, 1], title = 'variogram of morphing factors-epoch ' + str(epoch),
+                           alphas = [0.5, 1], title = 'variogram of simulation result-epoch ' + str(epoch),
                            vmodel = model)
-        'TPS'
-        result, result_cdf = TPS(mf_sim, mf_raw, landmarks, landmarks_cdf, rawdata
-                                 , knn = k, if_show = if_show, show = show)
-
-        result_container[:, :, epoch] = result.copy()
-        result_cdf_container[:, :, epoch] = result_cdf.copy()
-
-
+            plot_variogram([result_variogram, rawdata_variogram], y_label = y_label,
+                           line_label = ['SMMT', 'rawdata'], colors = ['orange','r'],
+                           alphas = [0.5, 1], title = 'variogram of SMMT result-epoch '+ str(epoch),
+                           vmodel = None)
 
     # 'calculate result variogram'
     #
