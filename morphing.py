@@ -7,9 +7,9 @@ if __name__ == '__main__':
     nlm = 1122  # number of landmarks
     lag = 4  # lag distance
     nlag = 50  # number of lags in variogram
-    mf_repeat = 10  # epoch of simulaiton
+    mf_repeat = 100  # epoch of simulaiton
     k = 10  # k nearest neighbor
-    if_add = True  # adding points into TPS
+    if_add = False  # adding points into TPS
 
     # 'creat locations for simulation result'
     # loc = np.hstack(
@@ -83,6 +83,8 @@ if __name__ == '__main__':
         'Sequential gaussian simulation'
         print("\nsimulating")
         for r in tqdm(range(mf_repeat), position = 0, leave = True):
+            if r <= 2:
+                if_show = True
             mf_sim = sgs(mf_raw_container[:, :, r].copy(), if_show = if_show, vmodel = model)
             result_container[:, :, r] = mf_sim
             'calculate variogram of SGSim'

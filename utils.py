@@ -26,8 +26,9 @@ def read_data(test):
     if test == 2:
         return rawdata[:, [0, 1, 12, 17]], [2, 3], ['Fe', 'Fe-Mn', 'Mn']
     elif test == 17:
-        return rawdata[:, [0, 1, 3, 6, 8, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 22, 23, 24, 25]], [8, 12], \
-               ['Al', 'Ba', 'Bi', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mn', 'Mo', 'Nb', 'P', 'Sr', 'Ti', 'V', 'Y1']
+        return rawdata[:, [0, 1, 3, 12, 13, 23, 24]], [2, 3], \
+               ['Al', 'Fe', 'K',  'Ti', 'V']
+    #  [3, 6, 10, 12, 13, 19, 22, 23, 24, 25]
     else:
         return rawdata[:, :27], [12, 17], ['Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K',
                                            'La', 'Li', 'Mg', 'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
@@ -44,8 +45,8 @@ def variogram_gam(data, cellsize, nlag):
         f.write("gam.dat                                 -file with data                      \n")
         if data.shape[1] == 4:
             f.write("2 3 4                               -number of var.,col numbers          \n")
-        elif data.shape[1] == 19:
-            f.write("17 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19    -number of var.,col num\n")
+        elif data.shape[1] == 7:
+            f.write("5 3 4 5 6 7    -number of var.,col num\n")
         else:
             f.write(
                 "25 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 -number of var.,col numbers\n")
@@ -80,8 +81,8 @@ def variogram_gamv(data, cellsize, nlag, azm, atol, dbglevel=1):
         f.write("1   2   0                               -columns for X, Y, Z coordinates     \n")
         if data.shape[1] == 27:
             f.write("25 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 -number of var.,col num\n")
-        elif data.shape[1] == 19:
-            f.write("17 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19    -number of var.,col num\n")
+        elif data.shape[1] == 7:
+            f.write("5 3 4 5 6 7    -number of var.,col num\n")
         else:
             f.write("2 3 4                               -number of var.,col numbers          \n")
         f.write("-1.0e21     1.0e21                      -trimming limits                     \n")
@@ -134,9 +135,8 @@ def a2g(rawdata, file):
     if rawdata.shape[1] == 27:
         columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
                    'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
-    elif rawdata.shape[1] == 19:
-        columns = ['X', 'Y', 'Al', 'Ba', 'Bi', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mn', 'Mo', 'Nb', 'P', 'Sr', 'Ti', 'V',
-                   'Y1']
+    elif rawdata.shape[1] == 7:
+        columns = ['X', 'Y', 'Al', 'Fe', 'K',  'Ti', 'V']
     else:
         columns = ['X', 'Y', 'Fe', 'Mn']
     title = np.asarray(file)
@@ -231,8 +231,8 @@ def plot_variogram(variograms, y_label, line_label, colors, alphas, title, vmode
             row = 5
             ele = 25
         else:
-            row = 4
-            ele = 17
+            row = 2
+            ele = 5
         'direct variogram'
         fig, axs = plt.subplots(row, 5, figsize = (17, 14))
         plt.suptitle(title, size = 20)
@@ -285,7 +285,7 @@ def plot_cross_variogram(variogram):
     if all(variogram.shape[1] == 327):
         e = 25
     else:
-        e = 17
+        e = 5
     var = np.zeros((e, e))
     for ele in range(e):
         head = int(2 + (2 * e - ele) * (ele + 1) / 2 - e + ele)
@@ -365,8 +365,8 @@ def sgs(input, if_show, vmodel):
             f.write("1 0.0 1.0                     - nz zmn zsiz                                \n")
             f.write(str(seed) + "                  -random number seed                          \n")
             f.write("0     18                      -min and max original data for sim           \n")
-            f.write("24                            -number of simulated nodes to use            \n")
-            f.write("0                             -assign data to nodes (0=no, 1=yes)          \n")
+            f.write("60                            -number of simulated nodes to use            \n")
+            f.write("1                             -assign data to nodes (0=no, 1=yes)          \n")
             f.write("1     3                       -multiple grid search (0=no, 1=yes),num      \n")
             f.write("0                             -maximum data per octant (0=not used)        \n")
             f.write("50 50 1.0                     -maximum search  (hmax,hmin,vert)            \n")
@@ -390,8 +390,8 @@ def sgs(input, if_show, vmodel):
         c_for_show = 10
         if dim == 4:
             c_for_show = 2
-        elif dim == 19:
-            c_for_show = 7
+        elif dim == 7:
+            c_for_show = 3
         plt.imshow(result[:, c_for_show].reshape(335, 335), cmap = 'jet', origin = 'lower', vmax = 4.1, vmin = -4.1)
         plt.title("SGSim result with landmarks")
         plt.colorbar()
@@ -507,7 +507,7 @@ def vmodel(variogram, guess=None):
     elif variogram.shape[1] == 327:
         parameters = np.zeros((25, 4))
     else:
-        parameters = np.zeros((17, 4))
+        parameters = np.zeros((5, 4))
     for i in range(parameters.shape[0]):
         v = int((2 * parameters.shape[0] + 1 - i) * i / 2)
         y = variogram[1:, v + 2]
@@ -541,12 +541,12 @@ def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show, add=True):
     result = np.hstack((result_cdf[:, :2], result))
     result = result[np.lexsort((result[:, 0], result[:, 1])), :].copy()
     if if_show:
-        plt.imshow(result[:, 2].reshape(335, 335), cmap = 'jet', origin = 'lower')
+        plt.imshow(result[:, 3].reshape(335, 335), cmap = 'jet', origin = 'lower')
         plt.colorbar()
         plt.title("SMMT result")
         plt.show()
-        plt.imshow(rawdata[:, 2].reshape(335, 335), cmap = 'jet', origin = 'lower',
-                   vmax = np.max(result[:, 2]), vmin = np.min(result[:, 2]))
+        plt.imshow(rawdata[:, 3].reshape(335, 335), cmap = 'jet', origin = 'lower',
+                   vmax = np.max(result[:, 3]), vmin = np.min(result[:, 3]))
         plt.colorbar()
         plt.title("Original data")
         plt.show()
