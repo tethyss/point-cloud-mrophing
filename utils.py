@@ -26,9 +26,12 @@ def read_data(test):
     if test == 2:
         return rawdata[:, [0, 1, 12, 17]], [2, 3], ['Fe', 'Fe-Mn', 'Mn']
     elif test == 17:
-        return rawdata[:, [0, 1, 3, 12, 13, 23, 24]], [2, 3], \
-               ['Al', 'Fe', 'K',  'Ti', 'V']
-    #  [3, 6, 10, 12, 13, 19, 22, 23, 24, 25]
+        # return rawdata[:, [0, 1, 3, 12, 13, 23, 24]], [2, 3], \
+        #        ['Al', 'Fe', 'K',  'Ti', 'V']
+        # return rawdata[:, [0, 1, 3, 6, 10, 12, 13, 19, 22, 23, 24, 25]], [5, 8], \
+        #        ['Al', 'Ba', 'Co', 'Fe', 'K', 'Nb', 'Sr', 'Ti', 'V', 'Y1']
+        return rawdata[:, [0, 1, 3, 6, 8, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 22, 23, 24, 25]], [7, 11], \
+                ['Al', 'Ba', 'Bi', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mn', 'Mo', 'Nb', 'P', 'Sr', 'Ti', 'V', 'Y1']
     else:
         return rawdata[:, :27], [12, 17], ['Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K',
                                            'La', 'Li', 'Mg', 'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
@@ -45,8 +48,8 @@ def variogram_gam(data, cellsize, nlag):
         f.write("gam.dat                                 -file with data                      \n")
         if data.shape[1] == 4:
             f.write("2 3 4                               -number of var.,col numbers          \n")
-        elif data.shape[1] == 7:
-            f.write("5 3 4 5 6 7    -number of var.,col num\n")
+        elif data.shape[1] == 19:
+            f.write("17 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19   -number of var.,col num\n")
         else:
             f.write(
                 "25 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 -number of var.,col numbers\n")
@@ -81,8 +84,8 @@ def variogram_gamv(data, cellsize, nlag, azm, atol, dbglevel=1):
         f.write("1   2   0                               -columns for X, Y, Z coordinates     \n")
         if data.shape[1] == 27:
             f.write("25 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 -number of var.,col num\n")
-        elif data.shape[1] == 7:
-            f.write("5 3 4 5 6 7    -number of var.,col num\n")
+        elif data.shape[1] == 19:
+            f.write("17 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19   -number of var.,col num\n")
         else:
             f.write("2 3 4                               -number of var.,col numbers          \n")
         f.write("-1.0e21     1.0e21                      -trimming limits                     \n")
@@ -106,37 +109,12 @@ def variogram_gamv(data, cellsize, nlag, azm, atol, dbglevel=1):
     return gamma
 
 
-def variogram_config(variogram):
-    nug = np.zeros(variogram.shape[1] - 2)
-    max_r = np.zeros(nug.shape) + 50
-
-    for dim in range(2, variogram.shape[1]):
-        nug[dim - 2] = max((2 * variogram[1, dim] - variogram[2, dim]), 0)
-        if max(variogram[:, dim]) >= 10:
-            'reach'
-            max_r[dim - 2] = variogram[np.where(variogram[:, dim] >= 1)[0][0], 0]
-        else:
-            print('ceil auto generated ')
-            'auto'
-            i = 0
-            a = 1
-            while a > 0.001 and i < variogram.shape[0] - 5:
-                c = np.polyfit(variogram[i:(i + 5), 0], variogram[i:(i + 5), dim], deg = 1)
-                a = c[0]
-                i += 1
-            max_r[dim - 2] = i + 5
-        # 'manual'
-        # max_r[dim - 2] = input("range:")
-
-    return np.hstack((nug.reshape([-1, 1]), max_r.reshape([-1, 1])))
-
-
 def a2g(rawdata, file):
     if rawdata.shape[1] == 27:
         columns = ['X', 'Y', 'Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mg',
                    'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
-    elif rawdata.shape[1] == 7:
-        columns = ['X', 'Y', 'Al', 'Fe', 'K',  'Ti', 'V']
+    elif rawdata.shape[1] == 19:
+        columns = ['X', 'Y', 'Al', 'Ba', 'Bi', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mn', 'Mo', 'Nb', 'P', 'Sr', 'Ti', 'V', 'Y1']
     else:
         columns = ['X', 'Y', 'Fe', 'Mn']
     title = np.asarray(file)
@@ -231,8 +209,8 @@ def plot_variogram(variograms, y_label, line_label, colors, alphas, title, vmode
             row = 5
             ele = 25
         else:
-            row = 2
-            ele = 5
+            row = 4
+            ele = 17
         'direct variogram'
         fig, axs = plt.subplots(row, 5, figsize = (17, 14))
         plt.suptitle(title, size = 20)
@@ -285,7 +263,7 @@ def plot_cross_variogram(variogram):
     if all(variogram.shape[1] == 327):
         e = 25
     else:
-        e = 5
+        e = 17
     var = np.zeros((e, e))
     for ele in range(e):
         head = int(2 + (2 * e - ele) * (ele + 1) / 2 - e + ele)
@@ -310,10 +288,10 @@ def transport(lm_cdf, if_show=False, show_config=None):
     x_cdf[:, 2:] = x_cdf[np.nonzero(pair)[1], 2:]
     x[:, 2:] = x[np.nonzero(pair)[1], 2:]
     if if_show:
-        plt.plot([lm_cdf[:, show_config[0]], x_cdf[:, show_config[0]]],
-                 [lm_cdf[:, show_config[1]], x_cdf[:, show_config[1]]], c = [.5, .5, 1], alpha = 0.2)
-        plt.plot(lm_cdf[:, show_config[0]], lm_cdf[:, show_config[1]], '+', c = 'b', label = 'Source samples')
-        plt.plot(x_cdf[:, show_config[0]], x_cdf[:, show_config[1]], 'x', c = 'r', label = 'Target samples')
+        plt.plot([lm_cdf[:100, show_config[0]], x_cdf[:100, show_config[0]]],
+                 [lm_cdf[:100, show_config[1]], x_cdf[:100, show_config[1]]], c = [.5, .5, 1], alpha = 0.2)
+        plt.plot(lm_cdf[:100, show_config[0]], lm_cdf[:100, show_config[1]], '+', c = 'b', label = 'landmark points')
+        plt.plot(x_cdf[:100, show_config[0]], x_cdf[:100, show_config[1]], 'x', c = 'r', label = 'morphing factors')
         plt.legend(loc = 0)
         plt.title('OT matrix with samples')
         plt.axis('square')
@@ -365,8 +343,8 @@ def sgs(input, if_show, vmodel):
             f.write("1 0.0 1.0                     - nz zmn zsiz                                \n")
             f.write(str(seed) + "                  -random number seed                          \n")
             f.write("0     18                      -min and max original data for sim           \n")
-            f.write("60                            -number of simulated nodes to use            \n")
-            f.write("1                             -assign data to nodes (0=no, 1=yes)          \n")
+            f.write("24                            -number of simulated nodes to use            \n")
+            f.write("0                             -assign data to nodes (0=no, 1=yes)          \n")
             f.write("1     3                       -multiple grid search (0=no, 1=yes),num      \n")
             f.write("0                             -maximum data per octant (0=not used)        \n")
             f.write("50 50 1.0                     -maximum search  (hmax,hmin,vert)            \n")
@@ -390,8 +368,8 @@ def sgs(input, if_show, vmodel):
         c_for_show = 10
         if dim == 4:
             c_for_show = 2
-        elif dim == 7:
-            c_for_show = 3
+        elif dim == 19:
+            c_for_show = 7
         plt.imshow(result[:, c_for_show].reshape(335, 335), cmap = 'jet', origin = 'lower', vmax = 4.1, vmin = -4.1)
         plt.title("SGSim result with landmarks")
         plt.colorbar()
@@ -507,7 +485,7 @@ def vmodel(variogram, guess=None):
     elif variogram.shape[1] == 327:
         parameters = np.zeros((25, 4))
     else:
-        parameters = np.zeros((5, 4))
+        parameters = np.zeros((17, 4))
     for i in range(parameters.shape[0]):
         v = int((2 * parameters.shape[0] + 1 - i) * i / 2)
         y = variogram[1:, v + 2]
@@ -525,7 +503,7 @@ def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show, add=True):
     lm_base = lm_cdf_lgt.copy()
     np.random.shuffle(mf_sim_cdf_lgt)
     result_cdf_lgt = mf_sim_cdf_lgt.copy()
-    for idx, x in enumerate(tqdm(mf_sim_cdf_lgt[:, :2], position = 0, leave = False)):
+    for idx, x in enumerate(mf_sim_cdf_lgt[:, :2]):
         if not max(np.all(lm_base[:, :2] == x, axis = 1)):
             loc = search_box(x, lm_base, knn)
             nbrs = NearestNeighbors(n_neighbors = knn, algorithm = 'auto').fit(lm_base[loc, :2])
@@ -541,12 +519,12 @@ def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show, add=True):
     result = np.hstack((result_cdf[:, :2], result))
     result = result[np.lexsort((result[:, 0], result[:, 1])), :].copy()
     if if_show:
-        plt.imshow(result[:, 3].reshape(335, 335), cmap = 'jet', origin = 'lower')
+        plt.imshow(result[:, show[0]].reshape(335, 335), cmap = 'jet', origin = 'lower')
         plt.colorbar()
         plt.title("SMMT result")
         plt.show()
-        plt.imshow(rawdata[:, 3].reshape(335, 335), cmap = 'jet', origin = 'lower',
-                   vmax = np.max(result[:, 3]), vmin = np.min(result[:, 3]))
+        plt.imshow(rawdata[:, show[0]].reshape(335, 335), cmap = 'jet', origin = 'lower',
+                   vmax = np.max(result[:, show[0]]), vmin = np.min(result[:, show[0]]))
         plt.colorbar()
         plt.title("Original data")
         plt.show()
