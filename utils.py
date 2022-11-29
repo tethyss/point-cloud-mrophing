@@ -15,7 +15,7 @@ from sklearn.neighbors import NearestNeighbors
 from tqdm import trange, tqdm
 
 
-def read_data(test):
+def read_data(select, test):
     """read data
         :arg test:True for tset set
         :return data, show config
@@ -23,6 +23,8 @@ def read_data(test):
     rawdata = pd.read_csv('./data.csv', header = 0)
     rawdata = rawdata.values
     rawdata = rawdata[np.lexsort((rawdata[:, 0], rawdata[:, 1])), :]
+    if select:
+        rawdata = rawdata[np.asarray(np.argwhere(rawdata[:, 29]==0))].reshape((-1,30))
     if test == 2:
         return rawdata[:, [0, 1, 12, 17]], [2, 3], ['Fe', 'Fe-Mn', 'Mn']
     elif test == 17:

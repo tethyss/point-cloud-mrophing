@@ -19,7 +19,7 @@ if __name__ == '__main__':
     #     (np.tile(np.arange(1, 336), 335).reshape((-1, 1)), np.repeat(np.arange(1, 336), 335).reshape((-1, 1))))
 
     'read origin data'
-    rawdata, show, y_label = read_data(test = if_test)
+    rawdata, show, y_label = read_data(select=True, test = if_test)
 
     'shuffle data'
     data = rawdata.copy()
