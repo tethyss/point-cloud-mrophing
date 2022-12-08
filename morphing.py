@@ -7,19 +7,15 @@ if __name__ == '__main__':
     grid = 335
     if_test = 17  # test data for 2/17
     epochs = 1  # simulation times
-    nlm = 5000  # number of landmarks
+    nlm = 200  # number of landmarks
     lag = 4  # lag distance
     nlag = 50  # number of lags in variogram
-    mf_repeat = 100  # epoch of simulaiton
+    mf_repeat = 100  # epoch of simulation
     k = 50  # k nearest neighbor
     if_add = False  # adding points into TPS
 
-    # 'creat locations for simulation result'
-    # loc = np.hstack(
-    #     (np.tile(np.arange(1, 336), 335).reshape((-1, 1)), np.repeat(np.arange(1, 336), 335).reshape((-1, 1))))
-
     'read origin data'
-    rawdata, show, y_label = read_data(select=True, test = if_test)
+    rawdata, show, y_label = read_data(test = if_test)
 
     'shuffle data'
     data = rawdata.copy()

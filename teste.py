@@ -1,17 +1,12 @@
 from utils import *
-import time
 
+'read origin data'
+rawdata, show, y_label = read_data(test = 2)
 
-def read_data():
-    full_data = pd.read_csv('./data.csv', header = 0)
-    full_data = full_data.values  # remove the location
-    full_data = full_data[np.lexsort((full_data[:, 0], full_data[:, 1])), :]
-    full_data = np.reshape(full_data, [335, 335, 25])
-    deposits = pd.read_csv('/content/drive/MyDrive/deposit.csv', header = 0)
-    deposits = deposits.values
-    return full_data, deposits
+'calculate variogram for rawdata'
+rawdata[:, 2:] = preprocessing.scale(rawdata[:, 2:])
+rawdata_variogram = variogram_gam(rawdata, cellsize = 4, nlag = 50)
 
-
-if __name__ == '__main__':
-    data, deposit = read_data()
-pass
+gamma = g2a('gamv_out.out', nlag = 50, num_vario = 3, type = 'gamv')
+plot_variogram([rawdata_variogram, gamma], y_label = ['Fe', 'Fe-Mn', 'Mn'], line_label = ['original data', 'selected data'], colors = ['b', 'r'],
+               alphas = [1,1], title = 'Variogram of orignial data', vmodel = None)

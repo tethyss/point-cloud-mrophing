@@ -15,7 +15,7 @@ from sklearn.neighbors import NearestNeighbors
 from tqdm import trange, tqdm
 
 
-def read_data(select, test):
+def read_data(test):
     """read data
         :arg test:True for tset set
         :return data, show config
@@ -23,17 +23,8 @@ def read_data(select, test):
     rawdata = pd.read_csv('./data.csv', header = 0)
     rawdata = rawdata.values
     rawdata = rawdata[np.lexsort((rawdata[:, 0], rawdata[:, 1])), :]
-    if select:
-        rawdata = rawdata[np.asarray(np.argwhere(rawdata[:, 29]==0))].reshape((-1,30))
-    if test == 2:
+    if test:
         return rawdata[:, [0, 1, 12, 17]], [2, 3], ['Fe', 'Fe-Mn', 'Mn']
-    elif test == 17:
-        # return rawdata[:, [0, 1, 3, 12, 13, 23, 24]], [2, 3], \
-        #        ['Al', 'Fe', 'K',  'Ti', 'V']
-        # return rawdata[:, [0, 1, 3, 6, 10, 12, 13, 19, 22, 23, 24, 25]], [5, 8], \
-        #        ['Al', 'Ba', 'Co', 'Fe', 'K', 'Nb', 'Sr', 'Ti', 'V', 'Y1']
-        return rawdata[:, [0, 1, 3, 6, 8, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 22, 23, 24, 25]], [7, 11], \
-                ['Al', 'Ba', 'Bi', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mn', 'Mo', 'Nb', 'P', 'Sr', 'Ti', 'V', 'Y1']
     else:
         return rawdata[:, :27], [12, 17], ['Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K',
                                            'La', 'Li', 'Mg', 'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
@@ -370,7 +361,7 @@ def sgs(input, if_show, vmodel):
         c_for_show = 10
         if dim == 4:
             c_for_show = 2
-        elif dim == 19:
+        elif dim == 17:
             c_for_show = 7
         plt.imshow(result[:, c_for_show].reshape(335, 335), cmap = 'jet', origin = 'lower', vmax = 4.1, vmin = -4.1)
         plt.title("SGSim result with landmarks")
