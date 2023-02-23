@@ -25,7 +25,7 @@ def read_data(test, sel):
     rawdata = rawdata[np.lexsort((rawdata[:, 0], rawdata[:, 1])), :]
     loc=[]
     if sel:
-        loc = np.asarray(np.argwhere(rawdata[:, 29] != 0)).reshape(-1)
+        loc = np.asarray(np.argwhere(rawdata[:, 29] == 0)).reshape(-1)
     if test:
         return rawdata[:, [0, 1, 12, 17]], [2, 3], ['Fe', 'Fe-Mn', 'Mn'], loc
     else:

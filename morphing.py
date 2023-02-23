@@ -39,7 +39,7 @@ if __name__ == '__main__':
         landmarks[:, 2:] = preprocessing.scale(landmarks[:, 2:])
 
         'variogram of landmarks'
-        lm_variogram = variogram_gamv(landmarks, cellsize=lag, nlag=nlag, azm=0, atol=180, dbglevel=0)
+        lm_variogram = variogram_gamv(landmarks, cellsize=lag, nlag=nlag, azm=90, atol=1, dbglevel=0)
         if epoch < 6:
             plot_variogram([lm_variogram], y_label=y_label, line_label=['landmark points'], colors=['b'],
                            alphas=[1], title='Variogram of landmarks', vmodel=None)
