@@ -28,6 +28,16 @@ if __name__ == '__main__':
     landmarks = np.loadtxt('./benchmark/Conditioning_Data_6dim_Numpy.txt')
     landmarks[:, 2:] = (landmarks[:, 2:] - np.mean(landmarks[:, 2:], axis = 0)) / np.std(landmarks[:, 2:], axis = 0)
 
+    'visualization'
+    fig, axs = plt.subplots(2, 3, figsize=(9.5, 6.4))
+    for i in range(6):
+        axs[i//3,i%3].imshow(rawdata[:,:,i],cmap='jet')
+        axs[i//3,i%3].scatter(landmarks[:,0],landmarks[:,1], c='none',s=10, edgecolor='grey')
+        axs[i // 3, i % 3].set_title('Z'+str(i+1))
+    plt.show()
+
+
+
     'calculate variogram for rawdata'
     rawdata_variogram = variogram_gam(data, cellsize = lag, nlag = nlag)
 

@@ -200,7 +200,7 @@ def plot_variogram(variograms, y_label, line_label, colors, alphas, title, vmode
             row = 5
             ele = 25
         else:
-            row = 4
+            row = 3
             ele = 6
         'direct variogram'
         fig, axs = plt.subplots(row, 5, figsize=(17, 14))
@@ -230,7 +230,7 @@ def plot_variogram(variograms, y_label, line_label, colors, alphas, title, vmode
         'cross variogram'
         v = list(set(np.arange(2, sum(range(1, ele + 1)) + 2)) - set(
             [int((2 * ele + 1 - i) * i / 2 + 2) for i in range(ele)]))
-        random.shuffle(v)
+        # random.shuffle(v)
         fig, axs = plt.subplots(row, 5, figsize=(17, 14))
         plt.suptitle(title, size=20)
         plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
