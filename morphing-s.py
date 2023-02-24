@@ -1,3 +1,4 @@
+import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 from utils import *
@@ -8,7 +9,7 @@ if __name__ == '__main__':
     epochs = 100  # simulation times
     nlm = 1122  # number of landmarks
     lag = 4  # lag distance
-    nlag = 50  # number of lags in variogram
+    nlag = 30  # number of lags in variogram
     mf_repeat = 10  # epoch of simulation
     k = 30  # k nearest neighbor
     if_add = False  # adding points into TPS
@@ -17,19 +18,26 @@ if __name__ == '__main__':
     rawdata = np.empty((200, 200, 6))
     for i in range(6):
         rawdata[:, :, i] = np.loadtxt('./benchmark/Reference_Z' + str(i + 1) + '_numpy.txt')
+    'add location'
+    data = np.empty((200*200, 8))
+    for i in range(200*200):
+        data[i,:] = np.hstack((int(i%200), int(i//200), rawdata[i//200, i%200,:]))
+    data[:,2:]=(data[:,2:]-np.mean(data[:,2:], axis=0))/np.std(data[:,2:], axis=0)
 
     "random landmarks"
     landmarks = np.loadtxt('./benchmark/Conditioning_Data_6dim_Numpy.txt')
+    landmarks[:, 2:] = (landmarks[:, 2:] - np.mean(landmarks[:, 2:], axis = 0)) / np.std(landmarks[:, 2:], axis = 0)
 
     'calculate variogram for rawdata'
-    rawdata_variogram = variogram_gam(rawdata, cellsize = lag, nlag = nlag)
+    rawdata_variogram = variogram_gam(data, cellsize = lag, nlag = nlag)
 
     'variogram of landmarks'
     lm_variogram = variogram_gamv(landmarks, cellsize = lag, nlag = nlag, azm = 90, atol = 22.5, dbglevel = 0)
 
+    y_label = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6']
 
-    plot_variogram([lm_variogram], y_label = y_label, line_label = ['landmark points'], colors = ['b'],
-                    alphas = [1], title = 'Variogram of landmarks', vmodel = None)
+    plot_variogram([rawdata_variogram, lm_variogram], y_label = y_label, line_label = ['rawdata', 'landmark points'], colors = ['r', 'b'],
+                    alphas = [1,1], title = 'Variogram of rawdata and landmarks', vmodel = None)
 
     'creat containers'
     sim_container = np.empty((nlm, data.shape[1], epochs))  # loc+value

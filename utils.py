@@ -37,24 +37,19 @@ def read_data(test, sel):
 def variogram_gam(data, cellsize, nlag):
     a2g(data, "gam.dat")
     num_vario = sum(range(1, data.shape[1] - 1))
+    numbers = ' '.join(str(i) for i in range(3, data.shape[1]+1))
     with open("gam.par", "w") as f:
         f.write("                         Parameters for GAM                                  \n")
         f.write("                         *******************                                 \n")
         f.write("                                                                             \n")
         f.write("START OF PARAMETERS:                                                         \n")
         f.write("gam.dat                                 -file with data                      \n")
-        if data.shape[1] == 4:
-            f.write("2 3 4                               -number of var.,col numbers          \n")
-        elif data.shape[1] == 19:
-            f.write("17 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19   -number of var.,col num\n")
-        else:
-            f.write(
-                "25 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 -number of var.,col numbers\n")
+        f.write(str(data.shape[1]-2)+' '+numbers+"       -number of var.,col numbers          \n")
         f.write("-1.0e21     1.0e21                      -trimming limits                     \n")
         f.write("gam_out.out                             -file for variogram output           \n")
         f.write("1                                       -grid or realization number          \n")
-        f.write("335   0.5    1                          -nx, xmn, xsiz                       \n")
-        f.write("335   0.5    1                          -ny, ymn, ysiz                       \n")
+        f.write(str(int(np.sqrt(data.shape[0])))+"   0.5  1   -nx, xmn, xsiz                       \n")
+        f.write(str(int(np.sqrt(data.shape[0])))+"   0.5  1   -ny, ymn, ysiz                       \n")
         f.write("1 0 0                                   -nz, zmn, zsiz                       \n")
         f.write("1 " + str(nlag) + "                     -number of directions, number of lags\n")
         f.write(str(cellsize) + "  0  0                  -ixd(1),iyd(1),izd(1)                \n")
@@ -63,8 +58,8 @@ def variogram_gam(data, cellsize, nlag):
         for v1 in range(1, data.shape[1] - 1):
             for v2 in range(v1, data.shape[1] - 1):
                 f.write(str(v1) + " " + str(v2) + " 2      -tail, head, variogram type  \n")
-    sp.run("gam.exe gam.par", stdout=sp.DEVNULL)
-    # sp.run("gam.exe gam.par")
+    # sp.run("gam.exe gam.par", stdout=sp.DEVNULL)
+    sp.run("gam.exe gam.par")
     gamma = g2a('gam_out.out', nlag=nlag, num_vario=num_vario, type='gam')
     return gamma
 
@@ -72,6 +67,7 @@ def variogram_gam(data, cellsize, nlag):
 def variogram_gamv(data, cellsize, nlag, azm, atol, dbglevel=1):
     a2g(data, "gamv.dat")
     num_vario = sum(range(1, data.shape[1] - 1))
+    numbers = ' '.join(str(i) for i in range(3, data.shape[1] + 1))
     with open("gamv.par", "w") as f:
         f.write("                         Parameters for GAMV                                 \n")
         f.write("                         *******************                                 \n")
@@ -79,12 +75,7 @@ def variogram_gamv(data, cellsize, nlag, azm, atol, dbglevel=1):
         f.write("START OF PARAMETERS:                                                         \n")
         f.write("gamv.dat                                -file with data                      \n")
         f.write("1   2   0                               -columns for X, Y, Z coordinates     \n")
-        if data.shape[1] == 27:
-            f.write("25 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 -number of var.,col num\n")
-        elif data.shape[1] == 19:
-            f.write("17 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19   -number of var.,col num\n")
-        else:
-            f.write("2 3 4                               -number of var.,col numbers          \n")
+        f.write(str(data.shape[1] - 2) + ' ' + numbers + "       -number of var.,col numbers          \n")
         f.write("-1.0e21     1.0e21                      -trimming limits                     \n")
         f.write("gamv_out.out                            -file for variogram output           \n")
         f.write(str(nlag) + "                            -number of lags                      \n")
@@ -113,6 +104,8 @@ def a2g(rawdata, file):
     elif rawdata.shape[1] == 19:
         columns = ['X', 'Y', 'Al', 'Ba', 'Bi', 'Co', 'F', 'Fe', 'K', 'La', 'Li', 'Mn', 'Mo', 'Nb', 'P', 'Sr', 'Ti', 'V',
                    'Y1']
+    elif rawdata.shape[1] == 8:
+        columns = ['X', 'Y', 'Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6']
     else:
         columns = ['X', 'Y', 'Fe', 'Mn']
     title = np.asarray(file)
@@ -139,7 +132,7 @@ def g2a(file, nlag, num_vario, type):
             n += 1
         else:
             gamma[i % (nlag + plus + 1) - 1, 0] = data[i][1]
-            gamma[i % (nlag + plus + 1) - 1, 1] = data[i][3]
+            # gamma[i % (nlag + plus + 1) - 1, 1] = data[i][3]
             gamma[i % (nlag + plus + 1) - 1, n] = data[i][2]
     return gamma
 
@@ -208,7 +201,7 @@ def plot_variogram(variograms, y_label, line_label, colors, alphas, title, vmode
             ele = 25
         else:
             row = 4
-            ele = 17
+            ele = 6
         'direct variogram'
         fig, axs = plt.subplots(row, 5, figsize=(17, 14))
         plt.suptitle(title, size=20)
