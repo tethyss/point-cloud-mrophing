@@ -22,11 +22,11 @@ if __name__ == '__main__':
     data = np.empty((200*200, 8))
     for i in range(200*200):
         data[i,:] = np.hstack((int(i%200), int(i//200), rawdata[i//200, i%200,:]))
-    data[:,2:]=(data[:,2:]-np.mean(data[:,2:], axis=0))/np.std(data[:,2:], axis=0)
+    #data[:,2:]=(data[:,2:]-np.mean(data[:,2:], axis=0))/np.std(data[:,2:], axis=0)
 
     "random landmarks"
     landmarks = np.loadtxt('./benchmark/Conditioning_Data_6dim_Numpy.txt')
-    landmarks[:, 2:] = (landmarks[:, 2:] - np.mean(landmarks[:, 2:], axis = 0)) / np.std(landmarks[:, 2:], axis = 0)
+    #landmarks[:, 2:] = (landmarks[:, 2:] - np.mean(landmarks[:, 2:], axis = 0)) / np.std(landmarks[:, 2:], axis = 0)
 
     'visualization'
     fig, axs = plt.subplots(2, 3, figsize=(9.5, 6.4))
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     rawdata_variogram = variogram_gam(data, cellsize = lag, nlag = nlag)
 
     'variogram of landmarks'
-    lm_variogram = variogram_gamv(landmarks, cellsize = lag, nlag = nlag, azm = 90, atol = 22.5, dbglevel = 0)
+    lm_variogram = variogram_gamv(landmarks, cellsize = lag, nlag = nlag, azm = 90, atol = 180, dbglevel = 0)
 
     y_label = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6']
 
