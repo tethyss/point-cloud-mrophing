@@ -20,9 +20,9 @@ if __name__ == '__main__':
         rawdata[:, :, i] = np.loadtxt('./benchmark/Reference_Z' + str(i + 1) + '_numpy.txt')
     'add location'
     data = np.empty((200*200, 8))
-    for i in range(200*200):
-        data[i,:] = np.hstack((int(i%200), int(i//200), rawdata[i//200, i%200,:]))
-    data[:,2:]=(data[:,2:]-np.mean(data[:,2:], axis=0))/np.std(data[:,2:], axis=0)
+    #for i in range(200*200):
+    #    data[i,:] = np.hstack((int(i%200), int(i//200), rawdata[i//200, i%200,:]))
+    #data[:,2:]=(data[:,2:]-np.mean(data[:,2:], axis=0))/np.std(data[:,2:], axis=0)
 
     "random landmarks"
     landmarks = np.loadtxt('./benchmark/Conditioning_Data_6dim_Numpy.txt')
