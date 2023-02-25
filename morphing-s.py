@@ -90,6 +90,7 @@ if __name__ == '__main__':
     plot_variogram([mf_variogram_container, variogram_ave], y_label=y_label,
                    line_label=['morphing factors', 'average'], colors=['orange', 'r'],
                    alphas=[0.5, 1], title='Variogram of morphing factors', vmodel=model)
+
     'Sequential gaussian simulation'
     print("\nsimulating")
     for r in tqdm(range(mf_repeat), position=0, leave=False):
