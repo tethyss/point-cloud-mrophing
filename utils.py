@@ -80,7 +80,7 @@ def variogram_gamv(data, cellsize, nlag, azm, atol, dbglevel=1):
         f.write("gamv_out.out                            -file for variogram output           \n")
         f.write(str(nlag) + "                            -number of lags                      \n")
         f.write(str(cellsize) + "                        -lag separation distance             \n")
-        f.write(str(cellsize / 2) + "                    -lag tolerance                       \n")
+        f.write(str(cellsize) + "                        -lag tolerance                       \n")
         f.write("1                                       -number of directions                \n")
         f.write(str(azm) + " " + str(atol) + " 999 0.0 180 999.0 -azm,atol,bandh,dip,dtol,bandv \n")
         f.write("0                                       -standardize sills? (0=no, 1=yes)    \n")

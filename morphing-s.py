@@ -85,7 +85,7 @@ if __name__ == '__main__':
     plt.show()
     mf_ave = np.sum(mf_raw_container, axis=2) / mf_repeat
     variogram_ave = np.sum(mf_variogram_container, axis=2) / mf_repeat
-    mf_variogram = variogram_gamv(mf_ave, cellsize=lag, nlag=nlag, azm=00, atol=180, dbglevel=0)
+    mf_variogram = variogram_gamv(mf_ave, cellsize=lag, nlag=nlag, azm=0, atol=180, dbglevel=0)
     model = vmodel(variogram_ave, guess=[0, 10, 110, 0.85])
     plot_variogram([mf_variogram_container, variogram_ave], y_label=y_label,
                    line_label=['morphing factors', 'average'], colors=['orange', 'r'],
