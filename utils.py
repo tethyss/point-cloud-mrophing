@@ -203,26 +203,26 @@ def plot_variogram(variograms, y_label, line_label, colors, alphas, title, vmode
             row = 3
             ele = 6
         'direct variogram'
-        fig, axs = plt.subplots(row, math.ceil(ele/row+1), figsize=(17, 14))
+        fig, axs = plt.subplots(row, math.ceil(ele/row), figsize=(17, 14))
         plt.suptitle(title, size=20)
         plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0.5, hspace=0.3)
         for idx, variogram in enumerate(variograms):
             variogram = variogram.reshape((variogram.shape[0], variogram.shape[1], -1))
             for line in range(variogram.shape[2]):
                 for i in range(ele):
-                    axs[int(i / row), int(i % row)].plot(variogram[1:, 0, line],
+                    axs[int(i / math.ceil(ele/row)), int(i % math.ceil(ele/row))].plot(variogram[1:, 0, line],
                                                      variogram[1:, int((2 * ele + 1 - i) * i / 2 + 2), line],
                                                      linewidth=0.8, color=colors[idx], alpha=alphas[idx],
                                                      label=line_label[idx] if line == 0 else '')
-                    axs[int(i / row), int(i % row)].set_xlabel('Distance')
-                    axs[int(i / row), int(i % row)].set_ylabel(y_label[i])
-                    axs[int(i / row), int(i % row)].set_box_aspect(1)
+                    axs[int(i / math.ceil(ele/row)), int(i % math.ceil(ele/row))].set_xlabel('Distance')
+                    axs[int(i / math.ceil(ele/row)), int(i % math.ceil(ele/row))].set_ylabel(y_label[i])
+                    axs[int(i / math.ceil(ele/row)), int(i % math.ceil(ele/row))].set_box_aspect(1)
                     #axs[int(i / row), int(i % row)].set_xlim(0.0, max(variogram[:, 0, line]))
                     #axs[int(i / row), int(i % row)].set_ylim(0.0, 1.5)
-                    axs[int(i / row), int(i % row)].legend()
+                    axs[int(i / math.ceil(ele/row)), int(i % math.ceil(ele/row))].legend()
         if vmodel is not None:
             for i in range(ele):
-                axs[int(i / 5), int(i % 5)].plot(variogram[1:, 0, 0],
+                axs[int(i / math.ceil(ele/row)), int(i % math.ceil(ele/row))].plot(variogram[1:, 0, 0],
                                                  exponential_two(variogram[1:, 0, 0], vmodel[i, 0], vmodel[i, 1],
                                                                  vmodel[i, 2], vmodel[i, 3])
                                                  , c='k', label='model', linewidth=0.8)
@@ -476,7 +476,7 @@ def vmodel(variogram, guess=None):
     elif variogram.shape[1] == 327:
         parameters = np.zeros((25, 4))
     else:
-        parameters = np.zeros((17, 4))
+        parameters = np.zeros((6, 4))
     for i in range(parameters.shape[0]):
         v = int((2 * parameters.shape[0] + 1 - i) * i / 2)
         y = variogram[1:, v + 2]
