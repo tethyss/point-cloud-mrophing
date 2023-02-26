@@ -116,6 +116,7 @@ if __name__ == '__main__':
     #                vmodel = None)
 
     np.save('result' + str(1) + '.npy', result_container)
+    np.save('mf_raw.npy', mf_raw_container)
     result_etype = np.mean(result_container,axis=2)
     plt.imshow(result_etype[:, 2].reshape(200,200),cmap='jet',origin='lower')
     plt.show()
