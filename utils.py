@@ -512,6 +512,7 @@ def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show, add=True):
     lm_base = lm_cdf_lgt.copy()
     np.random.shuffle(mf_sim_cdf_lgt)
     result_cdf_lgt = mf_sim_cdf_lgt.copy()
+
     for idx, x in enumerate(mf_sim_cdf_lgt[:, :2]):
         if not max(np.all(lm_base[:, :2] == x, axis = 1)):
             loc = search_box(x, lm_base, knn)

@@ -114,6 +114,7 @@ if __name__ == '__main__':
     #                line_label = ['SMMT', 'rawdata'], colors = ['orange', 'r'],
     #                alphas = [0.5, 1], title = 'Variogram of SMMT result',
     #                vmodel = None)
+
     np.save('result' + str(1) + '.npy', result_container)
     result_etype = np.mean(result_container,axis=2)
     plt.imshow(result_etype[:, 2].reshape(200,200),cmap='jet',origin='lower')
