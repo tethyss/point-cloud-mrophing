@@ -1,18 +1,15 @@
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-
 from utils import *
 
 if __name__ == '__main__':
     grid = 200
     if_test = False  # test data for 2
-    epochs = 100  # simulation times
+    epochs = 50  # simulation times
     nlm = 199  # number of landmarks
     lag = 4  # lag distance
     nlag = 30  # number of lags in variogram
-    mf_repeat = 100  # epoch of simulation
-    k = 30  # k nearest neighbor
-    if_add = False  # adding points into TPS
+    mf_repeat = 50  # epoch of simulation
+    k = 18  # k nearest neighbor
+    if_add = True  # adding points into TPS
 
     'read origin data'
     rawdata = np.empty((200, 200, 6))
@@ -55,6 +52,7 @@ if __name__ == '__main__':
     mf_variogram = np.empty((nlag, sum(range(1, data.shape[1] - 1)) + 2, epochs))
     sim_variogram = np.empty((nlag, sum(range(1, data.shape[1] - 1)) + 2, mf_repeat))
     result_container = np.empty((grid * grid, data.shape[1], mf_repeat))  # simulation result container
+    SMMT_container = np.empty((grid * grid, data.shape[1], mf_repeat))
     result_cdf_container = np.empty((grid * grid, data.shape[1], epochs))
     variogram = np.empty((nlag, sum(range(1, data.shape[1] - 1)) + 2, epochs))
     result_variogram = np.empty((nlag, sum(range(1, data.shape[1] - 1)) + 2, mf_repeat))
@@ -96,31 +94,46 @@ if __name__ == '__main__':
     print("\nsimulating")
     for r in tqdm(range(mf_repeat), position = 0, leave = False):
         if_show = False
-        if r <= 2:
+        if r <= 1:
             if_show = True
         mf_sim = sgs(mf_raw_container[:, :, r].copy(), if_show = if_show, vmodel = model)
         result_container[:, :, r] = mf_sim
         'calculate variogram of SGSim'
         sim_variogram[:, :, r] = variogram_gam(mf_sim, cellsize = lag, nlag = nlag)
-        # result, result_cdf = TPS(mf_sim, mf_raw_container[:, :, r].copy(), landmarks, landmarks_cdf, rawdata
-        #                          , knn = k, if_show = if_show, show = [2, 3], add = if_add)
-        # result_container[:, :, r] = result.copy()
-        # result_variogram[:, :, r] = variogram_gam(result, cellsize = lag, nlag = nlag)
+        result, result_cdf = TPS(mf_sim, mf_raw_container[:, :, r].copy(), landmarks, landmarks_cdf, data
+                                 , knn = k, if_show = if_show, show = [2, 3], add = if_add)
+        SMMT_container[:, :, r] = result.copy()
+        result_variogram[:, :, r] = variogram_gam(result, cellsize = lag, nlag = nlag)
     plot_variogram([sim_variogram, variogram_ave], y_label = y_label,
                    line_label = ['simulation', 'average'], colors = ['orange', 'r'],
                    alphas = [0.5, 1], title = 'Variogram of simulation result',
                    vmodel = model)
-    # plot_variogram([result_variogram, rawdata_variogram], y_label = y_label,
-    #                line_label = ['SMMT', 'rawdata'], colors = ['orange', 'r'],
-    #                alphas = [0.5, 1], title = 'Variogram of SMMT result',
-    #                vmodel = None)
+    plot_variogram([result_variogram, lm_variogram, rawdata_variogram], y_label = y_label,
+                   line_label = ['SMMT', 'landmark', 'rawdata'], colors = ['orange', 'b', 'r'],
+                   alphas = [0.5, 1, 1], title = 'Variogram of SMMT result',
+                   vmodel = None)
 
     np.save('result' + str(1) + '.npy', result_container)
     np.save('mf_raw.npy', mf_raw_container)
+    np.save('SMMTresult.npy', SMMT_container)
+
     result_etype = np.mean(result_container,axis=2)
     plt.imshow(result_etype[:, 2].reshape(200,200),cmap='jet',origin='lower')
     plt.show()
+
     result_sd = np.std(result_container,axis=2)
     plt.imshow(result_sd[:, 2].reshape(200,200),cmap='jet',origin='lower')
     plt.scatter(landmarks[:, 0], landmarks[:, 1], c = 'none', edgecolor = 'grey')
+    plt.show()
+
+    SMMT_etype = np.mean(SMMT_container,axis=2)
+    plt.imshow(SMMT_etype[:, 2].reshape(200,200),cmap='jet',origin='lower')
+    plt.show()
+
+    result_sd = np.std(SMMT_container,axis=2)
+    plt.imshow(result_sd[:, 2].reshape(200,200),cmap='jet',origin='lower')
+    plt.scatter(landmarks[:, 0], landmarks[:, 1], c = 'none', edgecolor = 'grey')
+    plt.show()
+
+    plt.imshow(data[:, 2].reshape(200,200),cmap='jet',origin='lower')
     plt.show()

@@ -252,7 +252,7 @@ def plot_variogram(variograms, y_label, line_label, colors, alphas, title, vmode
                     axs[int(i / 5), int(i % 5)].set_xlabel('Distance')
                     axs[int(i / 5), int(i % 5)].set_box_aspect(1 / 2)
                     # axs[int(i / 5), int(i % 5)].set_xlim(0.0, max(variogram[:, 0, line]))
-                    axs[int(i / 5), int(i % 5)].set_ylim(-0.75, 0.75)
+                    # axs[int(i / 5), int(i % 5)].set_ylim(-0.75, 0.75)
                     axs[int(i / 5), int(i % 5)].legend()
         plt.savefig('./variogram of data/' + title + '-cross.png')
         plt.show()
@@ -317,7 +317,7 @@ def sgs(input, if_show, vmodel):
         nug = vmodel[int(i - 2), 0]
         it1 = 2
         cc1 = vmodel[int(i - 2), 3]
-        azi1 = 90.0
+        azi1 = 0.0
         range1 = vmodel[int(i - 2), 1]
         range2 = vmodel[int(i - 2), 2]
 
@@ -345,15 +345,15 @@ def sgs(input, if_show, vmodel):
             f.write(str(grid) + " 0.5 1              - ny ymn ysiz                                \n")
             f.write("1 0.0 1.0                     - nz zmn zsiz                                \n")
             f.write(str(seed) + "                  -random number seed                          \n")
-            f.write("0     18                      -min and max original data for sim           \n")
-            f.write("24                            -number of simulated nodes to use            \n")
+            f.write("8     16                      -min and max original data for sim           \n")
+            f.write("16                            -number of simulated nodes to use            \n")
             f.write("0                             -assign data to nodes (0=no, 1=yes)          \n")
             f.write("1     3                       -multiple grid search (0=no, 1=yes),num      \n")
             f.write("0                             -maximum data per octant (0=not used)        \n")
-            f.write("50 50 1.0                     -maximum search  (hmax,hmin,vert)            \n")
+            f.write("60 60 10                      -maximum search  (hmax,hmin,vert)            \n")
             f.write(str(azi1) + "   0.0   0.0      -angles for search ellipsoid                 \n")
-            f.write("101 101 1                     -size of covariance lookup table             \n")
-            f.write("1     0.60   1.0              -ktype: 0=SK,1=OK,2=LVM,3=EXDR,4=COLC        \n")
+            f.write("241 241 1                     -size of covariance lookup table             \n")
+            f.write("0     0.0   1.0              -ktype: 0=SK,1=OK,2=LVM,3=EXDR,4=COLC        \n")
             f.write("none.dat                      -  file with LVM, EXDR, or COLC variable     \n")
             f.write("4                             -  column for secondary variable             \n")
             f.write("2 " + str(nug) + "            -nst, nugget effect                          \n")
