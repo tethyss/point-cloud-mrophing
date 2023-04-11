@@ -469,8 +469,6 @@ def vmodel(variogram, guess=None):
 
 def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show, add=True):
     grid = 335
-    if lm.shape[0] == 199:
-        grid = 200
     mf_cdf = convert_to_cdf(mf, show_config = show, if_show = False)
     mf_sim_cdf_lgt = sim.copy()
     mf_cdf_lgt = lgt(mf_cdf.copy(), typ = 1)
@@ -510,40 +508,6 @@ def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show, add=True):
         plt.show()
     return result
 
-
-def TPS_new(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show, add=True):
-    grid = 335
-    if lm.shape[0] == 199:
-        grid = 200
-    mf_cdf = convert_to_cdf(mf, show_config = show, if_show = False)
-    mf_sim_cdf = convert_to_cdf(sim, show_config = show, if_show = False)
-    mf_cdf_lgt = lgt(mf_cdf.copy(), typ = 1)
-    lm_cdf_lgt = lgt(lm_cdf, typ = 1)
-    mf_sim_cdf_lgt = lgt(mf_sim_cdf.copy(), typ = 1)
-    mf_base = mf_cdf_lgt.copy()
-    lm_base = lm_cdf_lgt.copy()
-    np.random.shuffle(mf_sim_cdf_lgt)
-    result_cdf_lgt = mf_sim_cdf_lgt.copy()
-
-    tps = ThinPlateSpline()
-    tps.fit(mf_base[:, 2:].reshape(knn, -1), lm_base[:, 2:].reshape(knn, -1))
-    for idx, x in enumerate(mf_sim_cdf_lgt[:, :2]):
-            result_cdf_lgt[idx, 2:] = tps.transform(mf_sim_cdf_lgt[idx, 2:].reshape(1, -1))
-    result_cdf = lgt(result_cdf_lgt.copy(), typ = -1)
-    result = de_cdf(lm[:, 2:], lm_cdf[:, 2:], result_cdf[:, 2:])
-    result = np.hstack((result_cdf[:, :2], result))
-    result = result[np.lexsort((result[:, 0], result[:, 1])), :].copy()
-    if if_show:
-        plt.imshow(result[:, show[0]].reshape(grid, grid), cmap = 'jet', origin = 'lower')
-        plt.colorbar()
-        plt.title("SMMT result")
-        plt.show()
-        plt.imshow(rawdata[:, show[0]].reshape(grid, grid), cmap = 'jet', origin = 'lower',
-                   vmax = np.max(result[:, show[0]]), vmin = np.min(result[:, show[0]]))
-        plt.colorbar()
-        plt.title("Original data")
-        plt.show()
-    return result, result_cdf
 
 def search_box(x, pool, knn):
     density = (335 * 335) / len(pool)

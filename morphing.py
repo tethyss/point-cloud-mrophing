@@ -1,4 +1,5 @@
 import os
+
 from utils import *
 
 if __name__ == '__main__':
@@ -77,8 +78,8 @@ if __name__ == '__main__':
             result_container[:, :, r] = mf_sim
             'calculate variogram of SGSim'
             sim_variogram[:, :, r] = variogram_gam(mf_sim, lag=4, nlag=50, trace=True)
-            result, result_cdf = TPS(mf_sim, mf_raw_container[:, :, r].copy(), landmarks, landmarks_cdf, rawdata
-                                     , knn=k, if_show=if_show, show=show, add=if_add)
+            result = TPS(mf_sim, mf_raw_container[:, :, r].copy(), landmarks, landmarks_cdf, rawdata
+                         , knn=k, if_show=if_show, show=show, add=if_add)
             result_container[:, :, r] = result.copy()
             result_variogram[:, :, r] = variogram_gam(result, lag=4, nlag=50, trace=True)
         plot_variogram([result_variogram, rawdata_variogram], y_label=y_label,
