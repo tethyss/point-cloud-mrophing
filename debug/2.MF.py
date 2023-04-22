@@ -4,8 +4,8 @@ rawdata = np.load('./result/rawdata.npy')
 show_config = [10, 12]
 label = ['Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K',
          'La', 'Li', 'Mg', 'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
-n_lm = int(335*335*0.1)
-lm_loc = np.random.randint(0, 335*335, size=n_lm)
+landmark_portion = 0.2
+lm_loc = np.random.randint(0, 335*335, size=int(335*335*landmark_portion))
 mf_repeat = 50
 nlag = 50
 
