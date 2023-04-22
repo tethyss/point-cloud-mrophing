@@ -7,7 +7,7 @@ if __name__ == '__main__':
     nlm = 199  # number of landmarks
     lag = 4  # lag distance
     nlag = 30  # number of lags in variogram
-    mf_repeat = 50  # epoch of simulation
+    mf_repeat = 2  # epoch of simulation
     k = 18  # k nearest neighbor
     if_add = True  # adding points into TPS
 

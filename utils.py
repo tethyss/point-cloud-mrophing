@@ -9,6 +9,8 @@ import ot
 import subprocess as sp
 import math
 from scipy import interpolate
+import scipy.stats as stats
+from scipy.stats import percentileofscore
 from scipy.optimize import curve_fit
 from multiprocessing import Pool
 from sklearn.neighbors import NearestNeighbors
@@ -16,23 +18,22 @@ from sklearn import preprocessing
 from tqdm import trange, tqdm
 
 
-def read_data(test, sel):
+def read_data(test):
     """read data
         :arg test:True for tset set
-        :return data, show config
+        :return data, show config,label
     """
     rawdata = pd.read_csv('./data.csv', header = 0)
     rawdata = rawdata.values
     rawdata = rawdata[np.lexsort((rawdata[:, 0], rawdata[:, 1])), :]
-    loc = []
-    if sel:
-        loc = np.asarray(np.argwhere(rawdata[:, 29] == 0)).reshape(-1)
+    for i in range(rawdata.shape[1] - 2):
+        tail = np.median(rawdata[:, 2 + i]) + 5 * np.std(rawdata[:, 2 + i])
+        rawdata[rawdata[:, 2 + i] > tail, 2 + i] = tail
     if test:
-        return rawdata[:, [0, 1, 12, 17]], [2, 3], ['Fe', 'Fe-Mn', 'Mn'], loc
+        return rawdata[:, [0, 1, 12, 17]], [2, 3], ['Fe', 'Fe-Mn', 'Mn']
     else:
-        return rawdata[:, :27], [12, 17], ['Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K',
-                                           'La', 'Li', 'Mg', 'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr'], \
-               loc
+        return rawdata[:, :27], [10, 12], ['Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K',
+                                           'La', 'Li', 'Mg', 'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
 
 
 def variogram_gam(data, lag, nlag, trace=False):
@@ -53,7 +54,7 @@ def variogram_gam(data, lag, nlag, trace=False):
         f.write(str(int(np.sqrt(data.shape[0]))) + "   0.5  1   -ny, ymn, ysiz                \n")
         f.write("1 0 0                                   -nz, zmn, zsiz                       \n")
         f.write("1 " + str(nlag) + "                     -number of directions, number of lags\n")
-        f.write(str(lag) + "  0  0                  -ixd(1),iyd(1),izd(1)                \n")
+        f.write(str(lag) + "  0  0                       -ixd(1),iyd(1),izd(1)                \n")
         f.write("0                                       -standardize sill? (0=no, 1=yes)     \n")
         f.write(str(num_vario) + "                       -number of variograms                \n")
         for v1 in range(1, data.shape[1] - 1):
@@ -140,21 +141,10 @@ def g2a(file, nlag, num_vario, type):
     return gamma
 
 
-def convert_to_cdf(pre_cdf, show_config, if_show, color='b'):  # '#F9E855'
-    p = 1. * np.arange(len(pre_cdf) + 2) / (len(pre_cdf) + 1)
-    after_cdf = np.empty(pre_cdf.shape)
-    after_cdf[:, :2] = pre_cdf[:, :2].copy()
-    for ele in range(2, len(pre_cdf[1])):
-        data_sorted = pre_cdf[:, ele].copy()
-        data_sorted = np.hstack(
-            (data_sorted.reshape([-1, 1]), np.arange(len(pre_cdf)).reshape([-1, 1])))
-        idex = np.argsort(data_sorted, axis = 0)
-        data_sorted = data_sorted[idex[:, 0]]
-        data_sorted[:, [0, 1]] = data_sorted[:, [1, 0]]
-        data_sorted = np.hstack((data_sorted, p[1:len(pre_cdf) + 1].reshape([-1, 1])))
-        idex = np.argsort(data_sorted, axis = 0)
-        data_sorted = data_sorted[idex[:, 0]]
-        after_cdf[:, ele] = data_sorted[:, 2]
+def convert_to_cdf(pre_cdf, show_config, if_show, color='b'):
+    after_cdf = pre_cdf.copy()
+    for ele in range(2, pre_cdf.shape[1]):
+        after_cdf[:, ele] = [percentileofscore(pre_cdf[:, ele], x) / 100.0 for x in pre_cdf[:, ele]]
     if if_show:
         ax1 = plt.subplot(121)
         ax1.set_title('raw data')
@@ -164,6 +154,7 @@ def convert_to_cdf(pre_cdf, show_config, if_show, color='b'):  # '#F9E855'
         ax2.set_title('CDF')
         ax2.scatter(after_cdf[:, show_config[0]], after_cdf[:, show_config[1]], s = 10, c = color)
         plt.axis('square')
+        plt.savefig('./result/datacdf.pdf', dpi = 330)
         plt.show()
     return after_cdf
 
@@ -188,7 +179,7 @@ def plot_variogram(variograms, ele, y_label, line_label, colors, alphas, title, 
                 axs[int(i / n_cols), int(i % n_cols)].tick_params(axis = 'both', labelsize = 15)
                 axs[int(i / n_cols), int(i % n_cols)].set_box_aspect(1 / 2)
                 # axs[int(i / n_cols), int(i % n_cols)].set_xlim(0.0, max(variogram[:, 0, line]))
-                axs[int(i / n_cols), int(i % n_cols)].set_ylim(0, 2)
+                axs[int(i / n_cols), int(i % n_cols)].set_ylim(0, 1.5)
                 # axs[int(i / n_cols), int(i % n_cols)].legend()
     if vmodel is not None:
         for i in range(ele):
@@ -197,7 +188,7 @@ def plot_variogram(variograms, ele, y_label, line_label, colors, alphas, title, 
                                                                                             vmodel[i, 2], vmodel[i, 3])
                                                        , c = 'k', label = 'model',
                                                        linewidth = 0.8)
-    plt.savefig('./variogram of data/' + title + '-direct.png', dpi = 330)
+    plt.savefig('./variogram of data/' + title + '-direct.pdf', dpi = 330)
     plt.show()
     'cross variogram'
     # v = list(set(np.arange(2, sum(range(1, ele + 1)) + 2)) - set(
@@ -222,7 +213,7 @@ def plot_variogram(variograms, ele, y_label, line_label, colors, alphas, title, 
                 # axs[int(i / 5), int(i % 5)].set_xlim(0.0, max(variogram[:, 0, line]))
                 axs[int(i / 5), int(i % 5)].set_ylim(-1.2, 1.2)
                 # axs[int(i / n_cols), int(i % n_cols)].legend()
-    plt.savefig('./variogram of data/' + title + '-cross.png', dpi = 330)
+    plt.savefig('./variogram of data/' + title + '-cross.pdf', dpi = 330)
     plt.show()
 
 
@@ -246,15 +237,26 @@ def plot_cross_variogram(variogram):
 
 def transport(lm_cdf, if_show=False, show_config=None):
     x = lm_cdf.copy()
+    x_cdf = lm_cdf.copy()
     for e in range(2, lm_cdf.shape[1]):
         x[:, e] = np.random.normal(0, 1, lm_cdf.shape[0])
+        x_cdf[:, e] = stats.norm.cdf(x[:, e], loc = 0, scale = 1)
     a, b = np.ones((len(lm_cdf),)) / len(lm_cdf), np.ones((len(lm_cdf),)) / len(lm_cdf)
-    x_cdf = convert_to_cdf(x.copy(), show_config = show_config, if_show = if_show, color = 'r')
     dist_matrix = ot.dist(lm_cdf[:, 2:], x_cdf[:, 2:])
-    pair = ot.emd(a, b, dist_matrix)
+    pair = ot.emd(a, b, dist_matrix, numItermax=900000)
     x_cdf[:, 2:] = x_cdf[np.nonzero(pair)[1], 2:]
     x[:, 2:] = x[np.nonzero(pair)[1], 2:]
     if if_show:
+        ax1 = plt.subplot(121)
+        ax1.set_title('Morphing factors')
+        ax1.scatter(x[:, show_config[0]], x[:, show_config[1]], s = 10, c = 'r')
+        ax1.axis('square')
+        ax2 = plt.subplot(122)
+        ax2.set_title('CDF')
+        ax2.scatter(x_cdf[:, show_config[0]], x_cdf[:, show_config[1]], s = 10, c = 'r')
+        plt.axis('square')
+        plt.savefig('./result/mfcdf.pdf', dpi = 330)
+        plt.show()
         plt.plot([lm_cdf[:100, show_config[0]], x_cdf[:100, show_config[0]]],
                  [lm_cdf[:100, show_config[1]], x_cdf[:100, show_config[1]]], c = [.5, .5, 1], alpha = 0.2)
         plt.plot(lm_cdf[:100, show_config[0]], lm_cdf[:100, show_config[1]], '+', c = 'b', label = 'landmark points')
@@ -264,6 +266,7 @@ def transport(lm_cdf, if_show=False, show_config=None):
         plt.axis('square')
         plt.xlim(0, 1)
         plt.ylim(0, 1)
+        plt.savefig('./result/ot.pdf', dpi=330)
         plt.show()
     return x, x_cdf
 
@@ -297,7 +300,7 @@ def sgs(input, if_show, vmodel):
             f.write("data4sim.dat                  -file with data                              \n")
             f.write("1  2  0 " + str(i + 1) + "  0  0 -  columns for X,Y,Z,vr,wt,sec.var.       \n")
             f.write("-1.0e21 1.0e21                -  trimming limits                           \n")
-            f.write("1                             -transform the data (0=no, 1=yes)            \n")
+            f.write("0                             -transform the data (0=no, 1=yes)            \n")
             f.write("none.trn                      -  file for output trans table               \n")
             f.write("0                             -  consider ref. dist (0=no, 1=yes)          \n")
             f.write("none.dat                      -  file with ref. dist distribution          \n")
@@ -313,9 +316,9 @@ def sgs(input, if_show, vmodel):
             f.write(str(grid) + " 0.5 1              - ny ymn ysiz                                \n")
             f.write("1 0.0 1.0                     - nz zmn zsiz                                \n")
             f.write(str(seed) + "                  -random number seed                          \n")
-            f.write("8     16                      -min and max original data for sim           \n")
-            f.write("16                            -number of simulated nodes to use            \n")
-            f.write("0                             -assign data to nodes (0=no, 1=yes)          \n")
+            f.write("0     16                      -min and max original data for sim           \n")
+            f.write("24                            -number of simulated nodes to use            \n")
+            f.write("1                             -assign data to nodes (0=no, 1=yes)          \n")
             f.write("1     3                       -multiple grid search (0=no, 1=yes),num      \n")
             f.write("0                             -maximum data per octant (0=not used)        \n")
             f.write("60 60 10                      -maximum search  (hmax,hmin,vert)            \n")
@@ -469,33 +472,35 @@ def vmodel(variogram, guess=None):
 
 def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show, add=True):
     grid = 335
-    mf_cdf = convert_to_cdf(mf, show_config = show, if_show = False)
-    mf_sim_cdf_lgt = sim.copy()
+    mf_cdf = mf.copy()
+    sim_cdf = sim.copy()
+    for e in range(2, len(mf[1])):
+        mf_cdf[:, e] = stats.norm.cdf(mf[:, e], loc = 0, scale = 1)
+        sim_cdf[:, e] = stats.norm.cdf(sim[:, e], loc = 0, scale = 1)
+    sim_cdf_lgt = lgt(sim_cdf.copy(), typ = 1)
     mf_cdf_lgt = lgt(mf_cdf.copy(), typ = 1)
-    lm_cdf_lgt = lgt(lm_cdf, typ = 1)
-    for c in range(2, sim.shape[1]):
-        func1 = interpolate.interp1d(mf[:, c], mf_cdf_lgt[:, c], fill_value="extrapolate")
-        mf_sim_cdf_lgt[:, c] = func1(sim[:, c])
+    lm_cdf_lgt = lgt(lm_cdf.copy(), typ = 1)
     mf_base = mf_cdf_lgt.copy()
     lm_base = lm_cdf_lgt.copy()
-    np.random.shuffle(mf_sim_cdf_lgt)
-    result_cdf_lgt = mf_sim_cdf_lgt.copy()
+    np.random.shuffle(sim_cdf_lgt)
+    result_cdf_lgt = sim_cdf_lgt.copy()
 
-    for idx, x in enumerate(mf_sim_cdf_lgt[:, :2]):
+    for idx, x in enumerate(sim_cdf_lgt[:, :2]):
         if not max(np.all(lm_base[:, :2] == x, axis = 1)):
             loc = search_box(x, lm_base, knn)
             nbrs = NearestNeighbors(n_neighbors = knn, algorithm = 'auto').fit(lm_base[loc, :2])
             tps = ThinPlateSpline()
             *_, indices = nbrs.kneighbors([x])
             tps.fit(mf_base[loc[indices], 2:].reshape(knn, -1), lm_base[loc[indices], 2:].reshape(knn, -1))
-            result_cdf_lgt[idx, 2:] = tps.transform(mf_sim_cdf_lgt[idx, 2:].reshape(1, -1))
+            result_cdf_lgt[idx, 2:] = tps.transform(sim_cdf_lgt[idx, 2:].reshape(1, -1))
             if add:
-                mf_base = np.vstack((mf_base, mf_sim_cdf_lgt[idx]))
+                mf_base = np.vstack((mf_base, sim_cdf_lgt[idx]))
                 lm_base = np.vstack((lm_base, result_cdf_lgt[idx]))
     result_cdf = lgt(result_cdf_lgt.copy(), typ = -1)
     result = de_cdf(lm[:, 2:], lm_cdf[:, 2:], result_cdf[:, 2:])
     result = np.hstack((result_cdf[:, :2], result))
     result = result[np.lexsort((result[:, 0], result[:, 1])), :].copy()
+    result_cdf = result_cdf[np.lexsort((result_cdf[:, 0], result_cdf[:, 1])), :].copy()
     if if_show:
         plt.imshow(result[:, show[0]].reshape(grid, grid), cmap = 'jet', origin = 'lower')
         plt.colorbar()
