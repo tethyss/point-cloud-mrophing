@@ -30,7 +30,7 @@ def read_data(test):
         tail = np.median(rawdata[:, 2 + i]) + 5 * np.std(rawdata[:, 2 + i])
         rawdata[rawdata[:, 2 + i] > tail, 2 + i] = tail
     if test:
-        return rawdata[:, [0, 1, 12, 17]], [2, 3], ['Fe', 'Fe-Mn', 'Mn']
+        return rawdata[:, [0, 1, 10, 12]], [2, 3], ['Fe', 'Fe-Mn', 'Mn']
     else:
         return rawdata[:, :27], [10, 12], ['Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K',
                                            'La', 'Li', 'Mg', 'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
