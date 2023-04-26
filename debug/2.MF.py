@@ -8,7 +8,7 @@ y_label = ['Ag', 'Al', 'Au', 'B', 'Ba', 'Be', 'Bi', 'Ca', 'Co', 'F', 'Fe', 'K',
            'La', 'Li', 'Mg', 'Mn', 'Mo', 'Nb', 'P', 'Sn', 'Sr', 'Ti', 'V', 'Y1', 'Zr']
 
 
-for landmark_portion in [0.01, 0.05]:
+for landmark_portion in [0.1, 0.2]:
     lm_loc = np.random.randint(0, 335 * 335, size = int(335 * 335 * landmark_portion))
 
     "random landmarks"
@@ -33,19 +33,9 @@ for landmark_portion in [0.01, 0.05]:
         mf_cdf_container[:, :, r] = mf_cdf.copy()
         mf_variogram_container[:, :, r] = variogram_gamv(mf_raw, cellsize = 4, nlag = 50, azm = 0, atol = 22.5,
                                                          dbglevel = 0)
-        if_show = False
+    show_connect(landmarks_cdf, mf_cdf_container, show_config=[10, 12])
     variogram_ave = np.sum(mf_variogram_container, axis = 2) / mf_repeat
     model = vmodel(variogram_ave, guess = [0, 10, 110, 0.85])
-    plt.scatter(landmarks_cdf[0, show_config[0]], landmarks_cdf[0, show_config[1]], marker = '+', c = 'b',
-                label = 'landmark point')
-    plt.scatter(mf_cdf_container[0, show_config[0], :], mf_cdf_container[0, show_config[1], :], marker = 'x', c = 'r',
-                label = 'morphing factors')
-    plt.legend()
-    plt.title('Pairing of landmark point and morphing factors')
-    plt.axis('square')
-    plt.xlim(0, 1)
-    plt.ylim(0, 1)
-    plt.show()
     plot_variogram([variogram_lm, mf_variogram_container, variogram_ave], ele = len(y_label), y_label = y_label,
                    line_label = ['landmark', 'mf', 'mf_ave'], colors = ['b', 'orange', 'k'],
                    alphas = [1, 0.2, 1], title = 'variogram of morphing factors '+str(landmark_portion), vmodel = model)
