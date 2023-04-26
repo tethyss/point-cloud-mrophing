@@ -79,7 +79,7 @@ def variogram_gamv(data, cellsize, nlag, azm, atol, dbglevel=1):
         f.write("START OF PARAMETERS:                                                         \n")
         f.write("gamv.dat                                -file with data                      \n")
         f.write("1   2   0                               -columns for X, Y, Z coordinates     \n")
-        f.write(str(data.shape[1] - 2) + ' ' + numbers + "       -number of var.,col numbers          \n")
+        f.write(str(data.shape[1] - 2) + ' ' + numbers + " -number of var.,col numbers          \n")
         f.write("-1.0e21     1.0e21                      -trimming limits                     \n")
         f.write("gamv_out.out                            -file for variogram output           \n")
         f.write(str(nlag) + "                            -number of lags                      \n")
@@ -170,8 +170,8 @@ def plot_variogram(variograms, ele, y_label, line_label, colors, alphas, title, 
         variogram = variogram.reshape((variogram.shape[0], variogram.shape[1], -1))
         for line in range(variogram.shape[2]):
             for i in range(ele):
-                axs[int(i / n_cols), int(i % n_cols)].plot(variogram[1:, 0, line],
-                                                           variogram[1:, int((2 * ele + 1 - i) * i / 2 + 2), line],
+                axs[int(i / n_cols), int(i % n_cols)].plot(variogram[:, 0, line],
+                                                           variogram[:, int((2 * ele + 1 - i) * i / 2 + 2), line],
                                                            linewidth = 1.5, color = colors[idx], alpha = alphas[idx],
                                                            label = line_label[idx] if line == 0 else '')
                 axs[int(i / n_cols), int(i % n_cols)].set_xlabel('Distance', size = 15)
@@ -183,7 +183,7 @@ def plot_variogram(variograms, ele, y_label, line_label, colors, alphas, title, 
                 # axs[int(i / n_cols), int(i % n_cols)].legend()
     if vmodel is not None:
         for i in range(ele):
-            axs[int(i / n_cols), int(i % n_cols)].plot(variogram[1:, 0, 0], exponential_two(variogram[1:, 0, 0],
+            axs[int(i / n_cols), int(i % n_cols)].plot(variogram[:, 0, 0], exponential_two(variogram[:, 0, 0],
                                                                                             vmodel[i, 0], vmodel[i, 1],
                                                                                             vmodel[i, 2], vmodel[i, 3])
                                                        , c = 'k', label = 'model',
@@ -193,7 +193,7 @@ def plot_variogram(variograms, ele, y_label, line_label, colors, alphas, title, 
     'cross variogram'
     # v = list(set(np.arange(2, sum(range(1, ele + 1)) + 2)) - set(
     #     [int((2 * ele + 1 - i) * i / 2 + 2) for i in range(ele)]))
-    v = [6, 35, 36, 41, 44, 47, 102, 110, 123, 145, 174, 185, 186, 193, 210, 216, 217, 221, 226, 229, 232, 242,
+    v = [6, 35, 36, 41, 44, 47, 102, 110, 123, 145, 177, 185, 186, 193, 210, 216, 217, 221, 226, 229, 232, 242,
          246, 295, 316]
     # random.shuffle(v)
     # TODO: e-e plot
@@ -204,7 +204,7 @@ def plot_variogram(variograms, ele, y_label, line_label, colors, alphas, title, 
         variogram = variogram.reshape((variogram.shape[0], variogram.shape[1], -1))
         for line in range(variogram.shape[2]):
             for i in range(int(n_rows * n_cols)):
-                axs[int(i / n_cols), int(i % n_cols)].plot(variogram[1:, 0, line], variogram[1:, v[i], line],
+                axs[int(i / n_cols), int(i % n_cols)].plot(variogram[:, 0, line], variogram[:, v[i], line],
                                                            linewidth = 1.5, color = colors[idx], alpha = alphas[idx],
                                                            label = line_label[idx] if line == 0 else '')
                 axs[int(i / n_cols), int(i % n_cols)].set_xlabel('Distance')
@@ -447,16 +447,16 @@ def exponential_two(h, nug, r1, r2, c):
         if r <= r1:
             result[idx] = c * (1 - math.exp(-3 * r / r1))
         elif r1 <= r <= r2:
-            result[idx] = c + (1 - c) * (1 - math.exp(-3 * (r - r1) / r2))
+            result[idx] = c + (1 - nug - c) * (1 - math.exp(-3 * (r - r1) / r2))
         else:
-            result[idx] = c + (1 - c) * (1 - math.exp(-3 * (r2 - r1) / r2))
+            result[idx] = c + (1 - nug - c) * (1 - math.exp(-3 * (r2 - r1) / r2))
     return result + nug
 
 
 def vmodel(variogram, guess=None):
     if guess is None:
         guess = [0, 10, 110, 0.85]
-    x = variogram[1:, 0]
+    x = variogram[:, 0]
     if variogram.shape[1] == 5:
         parameters = np.zeros((2, 4))
     elif variogram.shape[1] == 327:
@@ -465,7 +465,7 @@ def vmodel(variogram, guess=None):
         parameters = np.zeros((6, 4))
     for i in range(parameters.shape[0]):
         v = int((2 * parameters.shape[0] + 1 - i) * i / 2)
-        y = variogram[1:, v + 2]
+        y = variogram[:, v + 2]
         parameters[i], _ = curve_fit(exponential_two, x, y, p0 = guess, bounds = (0, 335))
     return parameters
 

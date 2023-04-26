@@ -14,7 +14,7 @@ if __name__ == '__main__':
     if_add = False  # adding points into TPS
 
     'read origin data'
-    rawdata, show, y_label= read_data(test=False)
+    rawdata, show, y_label = read_data(test=False)
     pt = preprocessing.PowerTransformer(method = 'box-cox')
     data = rawdata.copy()
     data[:, 2:] = pt.fit_transform(rawdata[:, 2:])
@@ -58,7 +58,6 @@ if __name__ == '__main__':
             mf_raw_container[:, :, r] = mf_raw.copy()
             mf_cdf_container[:, :, r] = mf_cdf.copy()
             if_show = False
-        mf_ave = np.sum(mf_raw_container, axis=2) / mf_repeat
         plt.scatter(landmarks_cdf[0, show[0]], landmarks_cdf[0, show[1]], marker='+', c='b', label='landmark point')
         plt.scatter(mf_cdf_container[0, show[0], :], mf_cdf_container[0, show[1], :], marker='x', c='r',
                     label='morphing factors')
