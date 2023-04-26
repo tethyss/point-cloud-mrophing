@@ -274,11 +274,14 @@ def transport(lm_cdf, if_show=False, show_config=None):
 def show_connect(lm_cdf, mf_cdf, show_config=[10,12]):
     dis = np.abs(lm_cdf[:, 2:]-0.5)
     row_index = np.argmin(dis[:, show_config[0]-2]+dis[:, show_config[1]-2])
+    d = np.sum(np.sqrt((mf_cdf[row_index, show_config[0], :] - lm_cdf[row_index, show_config[0]])**2+\
+         (mf_cdf[row_index, show_config[1], :] - lm_cdf[row_index, show_config[1]])**2))
+    d = round(d, 2)
     plt.scatter(lm_cdf[row_index, show_config[0]], lm_cdf[row_index, show_config[1]], marker='+', c='b',label='landmark point')
     plt.scatter(mf_cdf[row_index, show_config[0], :], mf_cdf[row_index, show_config[1], :], marker='x', c='r',
                 label='morphing factors')
     plt.legend()
-    plt.title('Pairing of landmark and morphing factors ')
+    plt.title('Pairing of landmark and morphing factors '+str(d))
     plt.axis('square')
     plt.xlim(0, 1)
     plt.ylim(0, 1)
