@@ -23,9 +23,10 @@ def read_data(test):
         :arg test:True for tset set
         :return data, show config,label
     """
-    rawdata = pd.read_csv('./data.csv', header = 0)
+    rawdata = pd.read_csv('./data.csv', header=0)
     rawdata = rawdata.values
     rawdata = rawdata[np.lexsort((rawdata[:, 0], rawdata[:, 1])), :]
+    rawdata[:, :2] = rawdata[:, :2] - 1
     for i in range(rawdata.shape[1] - 2):
         tail = np.median(rawdata[:, 2 + i]) + 5 * np.std(rawdata[:, 2 + i])
         rawdata[rawdata[:, 2 + i] > tail, 2 + i] = tail
@@ -63,8 +64,8 @@ def variogram_gam(data, lag, nlag, trace=False):
     if trace:
         sp.run("gam.exe gam.par")
     else:
-        sp.run("gam.exe gam.par", stdout = sp.DEVNULL)
-    gamma = g2a('gam_out.out', nlag = nlag, num_vario = num_vario, type = 'gam')
+        sp.run("gam.exe gam.par", stdout=sp.DEVNULL)
+    gamma = g2a('gam_out.out', nlag=nlag, num_vario=num_vario, type='gam')
     return gamma
 
 
@@ -93,11 +94,11 @@ def variogram_gamv(data, cellsize, nlag, azm, atol, dbglevel=1):
             for v2 in range(v1, data.shape[1] - 1):
                 f.write(str(v1) + " " + str(v2) + " 2    -tail, head, variogram type          \n")
     if dbglevel == 0:
-        sp.run("gamv.exe gamv.par", stdout = sp.DEVNULL)
+        sp.run("gamv.exe gamv.par", stdout=sp.DEVNULL)
     else:
         sp.run("gamv.exe gamv.par")
 
-    gamma = g2a('gamv_out.out', nlag = nlag, num_vario = num_vario, type = 'gamv')
+    gamma = g2a('gamv_out.out', nlag=nlag, num_vario=num_vario, type='gamv')
     return gamma
 
 
@@ -117,8 +118,8 @@ def a2g(rawdata, file):
     head = np.vstack((title, len(columns), col))
     head = pd.DataFrame(head)
     rawdata = pd.DataFrame(rawdata)
-    head.to_csv(file, index = False, header = False)
-    rawdata.to_csv(file, index = False, header = False, mode = "a", sep = ' ')
+    head.to_csv(file, index=False, header=False)
+    rawdata.to_csv(file, index=False, header=False, mode="a", sep=' ')
 
 
 def g2a(file, nlag, num_vario, type):
@@ -127,7 +128,7 @@ def g2a(file, nlag, num_vario, type):
     if type == 'gamv':
         plus = 2
     gamma = np.zeros((nlag + plus, num_vario + 2))
-    with open(file, newline = '') as f:
+    with open(file, newline='') as f:
         for line in f:
             data.append(line.split())
     n = 1
@@ -148,13 +149,13 @@ def convert_to_cdf(pre_cdf, show_config, if_show, color='b'):
     if if_show:
         ax1 = plt.subplot(121)
         ax1.set_title('raw data')
-        ax1.scatter(pre_cdf[:200, show_config[0]], pre_cdf[:200, show_config[1]], s = 10, c = color)
+        ax1.scatter(pre_cdf[:200, show_config[0]], pre_cdf[:200, show_config[1]], s=10, c=color)
         ax1.axis('square')
         ax2 = plt.subplot(122)
         ax2.set_title('CDF')
-        ax2.scatter(after_cdf[:200, show_config[0]], after_cdf[:200, show_config[1]], s = 10, c = color)
+        ax2.scatter(after_cdf[:200, show_config[0]], after_cdf[:200, show_config[1]], s=10, c=color)
         plt.axis('square')
-        plt.savefig('./result/datacdf.pdf', dpi = 330)
+        plt.savefig('./result/datacdf.pdf', dpi=330)
         plt.show()
     return after_cdf
 
@@ -163,20 +164,20 @@ def plot_variogram(variograms, ele, y_label, line_label, colors, alphas, title, 
     n_cols = 5
     n_rows = math.ceil(ele / n_cols)
     """direct variogram"""
-    fig, axs = plt.subplots(n_rows, n_cols, figsize = (15, 2 * n_rows))
-    plt.suptitle('Direct ' + title, size = 20)
-    plt.subplots_adjust(left = 0.08, bottom = 0.05, right = 0.98, top = 0.95, wspace = 0.5, hspace = 0.2)
+    fig, axs = plt.subplots(n_rows, n_cols, figsize=(15, 2 * n_rows))
+    plt.suptitle('Direct ' + title, size=20)
+    plt.subplots_adjust(left=0.08, bottom=0.05, right=0.98, top=0.95, wspace=0.5, hspace=0.2)
     for idx, variogram in enumerate(variograms):
         variogram = variogram.reshape((variogram.shape[0], variogram.shape[1], -1))
         for line in range(variogram.shape[2]):
             for i in range(ele):
                 axs[int(i / n_cols), int(i % n_cols)].plot(variogram[:, 0, line],
                                                            variogram[:, int((2 * ele + 1 - i) * i / 2 + 2), line],
-                                                           linewidth = 1.5, color = colors[idx], alpha = alphas[idx],
-                                                           label = line_label[idx] if line == 0 else '')
-                axs[int(i / n_cols), int(i % n_cols)].set_xlabel('Distance', size = 15)
-                axs[int(i / n_cols), int(i % n_cols)].set_ylabel(y_label[i], size = 15)
-                axs[int(i / n_cols), int(i % n_cols)].tick_params(axis = 'both', labelsize = 15)
+                                                           linewidth=1.5, color=colors[idx], alpha=alphas[idx],
+                                                           label=line_label[idx] if line == 0 else '')
+                axs[int(i / n_cols), int(i % n_cols)].set_xlabel('Distance', size=15)
+                axs[int(i / n_cols), int(i % n_cols)].set_ylabel(y_label[i], size=15)
+                axs[int(i / n_cols), int(i % n_cols)].tick_params(axis='both', labelsize=15)
                 axs[int(i / n_cols), int(i % n_cols)].set_box_aspect(1 / 2)
                 # axs[int(i / n_cols), int(i % n_cols)].set_xlim(0.0, max(variogram[:, 0, line]))
                 axs[int(i / n_cols), int(i % n_cols)].set_ylim(0, 1.5)
@@ -184,11 +185,11 @@ def plot_variogram(variograms, ele, y_label, line_label, colors, alphas, title, 
     if vmodel is not None:
         for i in range(ele):
             axs[int(i / n_cols), int(i % n_cols)].plot(variogram[:, 0, 0], exponential_two(variogram[:, 0, 0],
-                                                                                            vmodel[i, 0], vmodel[i, 1],
-                                                                                            vmodel[i, 2], vmodel[i, 3])
-                                                       , c = 'k', label = 'model',
-                                                       linewidth = 0.8)
-    plt.savefig('./variogram of data/' + title + '-direct.pdf', dpi = 330)
+                                                                                           vmodel[i, 0], vmodel[i, 1],
+                                                                                           vmodel[i, 2], vmodel[i, 3])
+                                                       , c='k', label='model',
+                                                       linewidth=0.8)
+    plt.savefig('./variogram of data/' + title + '-direct.pdf', dpi=330)
     plt.show()
     'cross variogram'
     # v = list(set(np.arange(2, sum(range(1, ele + 1)) + 2)) - set(
@@ -197,23 +198,23 @@ def plot_variogram(variograms, ele, y_label, line_label, colors, alphas, title, 
          246, 295, 316]
     # random.shuffle(v)
     # TODO: e-e plot
-    fig, axs = plt.subplots(n_rows, n_cols, figsize = (15, 2 * n_rows))
-    plt.suptitle('Cross ' + title, size = 20)
-    plt.subplots_adjust(left = 0.08, bottom = 0.05, right = 0.98, top = 0.95, wspace = 0.5, hspace = 0.2)
+    fig, axs = plt.subplots(n_rows, n_cols, figsize=(15, 2 * n_rows))
+    plt.suptitle('Cross ' + title, size=20)
+    plt.subplots_adjust(left=0.08, bottom=0.05, right=0.98, top=0.95, wspace=0.5, hspace=0.2)
     for idx, variogram in enumerate(variograms):
         variogram = variogram.reshape((variogram.shape[0], variogram.shape[1], -1))
         for line in range(variogram.shape[2]):
             for i in range(int(n_rows * n_cols)):
                 axs[int(i / n_cols), int(i % n_cols)].plot(variogram[:, 0, line], variogram[:, v[i], line],
-                                                           linewidth = 1.5, color = colors[idx], alpha = alphas[idx],
-                                                           label = line_label[idx] if line == 0 else '')
+                                                           linewidth=1.5, color=colors[idx], alpha=alphas[idx],
+                                                           label=line_label[idx] if line == 0 else '')
                 axs[int(i / n_cols), int(i % n_cols)].set_xlabel('Distance')
                 axs[int(i / n_cols), int(i % n_cols)].set_box_aspect(1 / 2)
-                axs[int(i / n_cols), int(i % n_cols)].tick_params(axis = 'both', labelsize = 15)
+                axs[int(i / n_cols), int(i % n_cols)].tick_params(axis='both', labelsize=15)
                 # axs[int(i / 5), int(i % 5)].set_xlim(0.0, max(variogram[:, 0, line]))
                 axs[int(i / 5), int(i % 5)].set_ylim(-1.2, 1.2)
                 # axs[int(i / n_cols), int(i % n_cols)].legend()
-    plt.savefig('./variogram of data/' + title + '-cross.pdf', dpi = 330)
+    plt.savefig('./variogram of data/' + title + '-cross.pdf', dpi=330)
     plt.show()
 
 
@@ -227,41 +228,41 @@ def plot_cross_variogram(variogram):
         head = int(2 + (2 * e - ele) * (ele + 1) / 2 - e + ele)
         for j in range(head, head + e - ele):
             var[j - head + ele, ele] = np.sum(variogram[:, j] ** 2)
-    plt.imshow(var, cmap = 'Reds')
-    plt.title('Variance of Cross variogram', size = 15)
+    plt.imshow(var, cmap='Reds')
+    plt.title('Variance of Cross variogram', size=15)
     plt.xlabel('Elements')
     plt.ylabel('Elements')
-    plt.colorbar(label = 'Sum of square')
+    plt.colorbar(label='Sum of square')
     plt.show()
 
 
-def transport(lm_cdf, if_show=False, show_config=None):
+def transport(lm_cdf, maxit=1e8, if_show=False, show_config=None):
     x = lm_cdf.copy()
     x_cdf = lm_cdf.copy()
     for e in range(2, lm_cdf.shape[1]):
         x[:, e] = np.random.normal(0, 1, lm_cdf.shape[0])
-        x_cdf[:, e] = stats.norm.cdf(x[:, e], loc = 0, scale = 1)
+        x_cdf[:, e] = stats.norm.cdf(x[:, e], loc=0, scale=1)
     a, b = np.ones((len(lm_cdf),)) / len(lm_cdf), np.ones((len(lm_cdf),)) / len(lm_cdf)
     dist_matrix = ot.dist(lm_cdf[:, 2:], x_cdf[:, 2:])
-    pair = ot.emd(a, b, dist_matrix, numItermax=1e8)
+    pair = ot.emd(a, b, dist_matrix, numItermax=maxit)
     x_cdf[:, 2:] = x_cdf[np.nonzero(pair)[1], 2:]
     x[:, 2:] = x[np.nonzero(pair)[1], 2:]
     if if_show:
         ax1 = plt.subplot(121)
         ax1.set_title('Morphing factors')
-        ax1.scatter(x[:200, show_config[0]], x[:200, show_config[1]], s = 10, c = 'r')
+        ax1.scatter(x[:200, show_config[0]], x[:200, show_config[1]], s=10, c='r')
         ax1.axis('square')
         ax2 = plt.subplot(122)
         ax2.set_title('CDF')
-        ax2.scatter(x_cdf[:200, show_config[0]], x_cdf[:200, show_config[1]], s = 10, c = 'r')
+        ax2.scatter(x_cdf[:200, show_config[0]], x_cdf[:200, show_config[1]], s=10, c='r')
         plt.axis('square')
-        plt.savefig('./result/mfcdf.pdf', dpi = 330)
+        plt.savefig('./result/mfcdf.pdf', dpi=330)
         plt.show()
         plt.plot([lm_cdf[:100, show_config[0]], x_cdf[:100, show_config[0]]],
-                 [lm_cdf[:100, show_config[1]], x_cdf[:100, show_config[1]]], c = [.5, .5, 1], alpha = 0.2)
-        plt.plot(lm_cdf[:100, show_config[0]], lm_cdf[:100, show_config[1]], '+', c = 'b', label = 'landmark points')
-        plt.plot(x_cdf[:100, show_config[0]], x_cdf[:100, show_config[1]], 'x', c = 'r', label = 'morphing factors')
-        plt.legend(loc = 0)
+                 [lm_cdf[:100, show_config[1]], x_cdf[:100, show_config[1]]], c=[.5, .5, 1], alpha=0.2)
+        plt.plot(lm_cdf[:100, show_config[0]], lm_cdf[:100, show_config[1]], '+', c='b', label='landmark points')
+        plt.plot(x_cdf[:100, show_config[0]], x_cdf[:100, show_config[1]], 'x', c='r', label='morphing factors')
+        plt.legend(loc=0)
         plt.title('OT matrix with samples')
         plt.axis('square')
         plt.xlim(0, 1)
@@ -271,21 +272,23 @@ def transport(lm_cdf, if_show=False, show_config=None):
     return x, x_cdf
 
 
-def show_connect(lm_cdf, mf_cdf, show_config=[10,12]):
-    dis = np.abs(lm_cdf[:, 2:]-0.5)
-    row_index = np.argmin(dis[:, show_config[0]-2]+dis[:, show_config[1]-2])
-    d = np.sum(np.sqrt((mf_cdf[row_index, show_config[0], :] - lm_cdf[row_index, show_config[0]])**2+\
-         (mf_cdf[row_index, show_config[1], :] - lm_cdf[row_index, show_config[1]])**2))
+def show_connect(lm_cdf, mf_cdf, show_config=[10, 12]):
+    dis = np.abs(lm_cdf[:, 2:] - 0.5)
+    row_index = np.argmin(dis[:, show_config[0] - 2] + dis[:, show_config[1] - 2])
+    d = np.sum(np.sqrt((mf_cdf[row_index, show_config[0], :] - lm_cdf[row_index, show_config[0]]) ** 2 + \
+                       (mf_cdf[row_index, show_config[1], :] - lm_cdf[row_index, show_config[1]]) ** 2))
     d = round(d, 2)
-    plt.scatter(lm_cdf[row_index, show_config[0]], lm_cdf[row_index, show_config[1]], marker='+', c='b',label='landmark point')
+    plt.scatter(lm_cdf[row_index, show_config[0]], lm_cdf[row_index, show_config[1]], marker='+', c='b',
+                label='landmark point')
     plt.scatter(mf_cdf[row_index, show_config[0], :], mf_cdf[row_index, show_config[1], :], marker='x', c='r',
                 label='morphing factors')
     plt.legend()
-    plt.title('Pairing of landmark and morphing factors '+str(d))
+    plt.title('Pairing of landmark and morphing factors ' + str(d))
     plt.axis('square')
     plt.xlim(0, 1)
     plt.ylim(0, 1)
     plt.show()
+
 
 def sgs(input, if_show, vmodel):
     grid = 335
@@ -353,8 +356,8 @@ def sgs(input, if_show, vmodel):
     with Pool(12) as p:
         p.map(sgsrun, par)
     for i in range(2, dim):
-        result[:, i] += np.asarray(pd.read_csv('./exe/sgsout' + str(i - 2) + '.out', header = 2)).reshape(
-            grid*grid)
+        result[:, i] += np.asarray(pd.read_csv('./exe/sgsout' + str(i - 2) + '.out', header=2)).reshape(
+            grid * grid)
     if if_show:
         c_for_show = 10
         if dim == 4:
@@ -363,12 +366,12 @@ def sgs(input, if_show, vmodel):
             c_for_show = 7
         elif dim == 8:
             c_for_show = 2
-        plt.imshow(result[:, c_for_show].reshape(grid, grid), cmap = 'jet', origin = 'lower', vmax = 4.1, vmin = -4.1)
+        plt.imshow(result[:, c_for_show].reshape(grid, grid), cmap='jet', origin='lower', vmax=4.1, vmin=-4.1)
         plt.title("SGSim result with landmarks")
         plt.colorbar()
-        plt.scatter(input[:, 0], input[:, 1], c = input[:, c_for_show], cmap = "jet", s = 20, edgecolor = '0.5',
-                    vmax = 4.1,
-                    vmin = -4.1)
+        plt.scatter(input[:100, 0], input[:100, 1], c=input[:100, c_for_show], cmap="jet", s=10, edgecolor='0.5',
+                    vmax=4.1,
+                    vmin=-4.1)
         plt.xlim([0, grid])
         plt.ylim([0, grid])
         plt.show()
@@ -376,7 +379,7 @@ def sgs(input, if_show, vmodel):
 
 
 def sgsrun(par):
-    sp.run(par, stdout = sp.DEVNULL)
+    sp.run(par, stdout=sp.DEVNULL)
 
 
 class ThinPlateSpline:
@@ -384,8 +387,8 @@ class ThinPlateSpline:
     def __init__(self, alpha=0.0) -> None:
         self._fitted = False  # check if fitted
         self.alpha = alpha  #
-        self.parameters = np.array([], dtype = np.float32)
-        self.control_points = np.array([], dtype = np.float32)
+        self.parameters = np.array([], dtype=np.float32)
+        self.control_points = np.array([], dtype=np.float32)
 
     def fit(self, X: np.ndarray, Y: np.ndarray) -> ThinPlateSpline:
         """Learn f that matches Y given X
@@ -432,20 +435,6 @@ class ThinPlateSpline:
         return dist ** 2 * np.log(dist)
 
 
-def de_cdf(anchors, anchors_cdf, data):
-    data_decdf = np.zeros(data.shape)
-    for ele in range(data.shape[1]):
-        rank = np.hstack(
-            (anchors[:, ele].reshape((-1, 1)), anchors_cdf[:, ele].reshape((-1, 1))))  # 0-real value 1-cdf value
-        rank = rank[rank[:, 1].argsort()]
-        bottom = 2 * rank[0, 0] - rank[1, 0]
-        top = 2 * rank[-1, 0] - rank[-2, 0]
-        rank = np.vstack(([bottom, 0], rank, [top, 1]))
-        func1 = interpolate.interp1d(rank[:, 1], rank[:, 0], kind = 'quadratic')
-        data_decdf[:, ele] = func1(data[:, ele])
-    return data_decdf
-
-
 def lgt(data, typ):
     mf_logit = data.copy()
     for i in range(2, len(data[1])):
@@ -482,48 +471,53 @@ def vmodel(variogram, guess=None):
     for i in range(parameters.shape[0]):
         v = int((2 * parameters.shape[0] + 1 - i) * i / 2)
         y = variogram[:, v + 2]
-        parameters[i], _ = curve_fit(exponential_two, x, y, p0 = guess, bounds = (0, 335))
+        parameters[i] ,_ = curve_fit(exponential_two, x, y, p0=guess, bounds=(0, 335))
     return parameters
 
 
-def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show, add=True):
+def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show):
     grid = 335
-    mf_cdf = mf.copy()
-    sim_cdf = sim.copy()
+    'to CDF'
     for e in range(2, len(mf[1])):
-        mf_cdf[:, e] = stats.norm.cdf(mf[:, e], loc = 0, scale = 1)
-        sim_cdf[:, e] = stats.norm.cdf(sim[:, e], loc = 0, scale = 1)
-    sim_cdf_lgt = lgt(sim_cdf.copy(), typ = 1)
-    mf_cdf_lgt = lgt(mf_cdf.copy(), typ = 1)
-    lm_cdf_lgt = lgt(lm_cdf.copy(), typ = 1)
-    mf_base = mf_cdf_lgt.copy()
-    lm_base = lm_cdf_lgt.copy()
-    np.random.shuffle(sim_cdf_lgt)
-    result_cdf_lgt = sim_cdf_lgt.copy()
+        mf[:, e] = stats.norm.cdf(mf[:, e], loc=0, scale=1)
+        sim[:, e] = stats.norm.cdf(sim[:, e], loc=0, scale=1)
+    'to Logic Space'
+    sim = lgt(sim, typ=1)
+    mf = lgt(mf, typ=1)
+    lm_cdf = lgt(lm_cdf, typ=1)
+    'generating anchors'
+    mf_base = np.empty_like(sim) - 1
+    mf_base[:len(mf)] += mf.copy()
+    lm_base = np.empty_like(sim) - 1
+    lm_base[:len(lm)] += lm_cdf.copy()
+    'interpolation location'
+    rand=[num for num in list(range(len(sim))) if num not in (lm[:,0]+lm[:,1]*335)]
+    np.random.shuffle(rand)
+    result = sim.copy()
 
-    for idx, x in enumerate(sim_cdf_lgt[:, :2]):
-        if not max(np.all(lm_base[:, :2] == x, axis = 1)):
-            loc = search_box(x, lm_base, knn)
-            nbrs = NearestNeighbors(n_neighbors = knn, algorithm = 'auto').fit(lm_base[loc, :2])
-            tps = ThinPlateSpline()
-            *_, indices = nbrs.kneighbors([x])
-            tps.fit(mf_base[loc[indices], 2:].reshape(knn, -1), lm_base[loc[indices], 2:].reshape(knn, -1))
-            result_cdf_lgt[idx, 2:] = tps.transform(sim_cdf_lgt[idx, 2:].reshape(1, -1))
-            if add:
-                mf_base = np.vstack((mf_base, sim_cdf_lgt[idx]))
-                lm_base = np.vstack((lm_base, result_cdf_lgt[idx]))
-    result_cdf = lgt(result_cdf_lgt.copy(), typ = -1)
-    result = de_cdf(lm[:, 2:], lm_cdf[:, 2:], result_cdf[:, 2:])
-    result = np.hstack((result_cdf[:, :2], result))
-    result = result[np.lexsort((result[:, 0], result[:, 1])), :].copy()
-    result_cdf = result_cdf[np.lexsort((result_cdf[:, 0], result_cdf[:, 1])), :].copy()
+    n = 0
+    for x in rand:
+        loc = search_box([x % grid, x // grid], lm_base[:int(len(lm) + n)], knn)
+        nbrs = NearestNeighbors(n_neighbors=knn, algorithm='auto').fit(lm_base[loc, :2])
+        tps = ThinPlateSpline()
+        *_, indices = nbrs.kneighbors([[x // grid, x % grid]])
+        tps.fit(mf_base[loc[indices], 2:].reshape(knn, -1), lm_base[loc[indices], 2:].reshape(knn, -1))
+        result[x, 2:] = tps.transform(sim[x, 2:].reshape(1, -1))
+        mf_base[len(lm) + n] = sim[x]
+        lm_base[len(lm) + n] = result[x]
+        n += 1
+    'De_logic'
+    result = lgt(result.copy(), typ=-1)
+    'De_CDF'
+    for e in range(2, result.shape[1]):
+        result[:, e] = [stats.scoreatpercentile(lm[:, e], x * 100) for x in result[:, e]]
     if if_show:
-        plt.imshow(result[:, show[0]].reshape(grid, grid), cmap = 'jet', origin = 'lower')
+        plt.imshow(result[:, show[0]].reshape(grid, grid), cmap='jet', origin='lower')
         plt.colorbar()
         plt.title("SMMT result")
         plt.show()
-        plt.imshow(rawdata[:, show[0]].reshape(grid, grid), cmap = 'jet', origin = 'lower',
-                   vmax = np.max(result[:, show[0]]), vmin = np.min(result[:, show[0]]))
+        plt.imshow(rawdata[:, show[0]].reshape(grid, grid), cmap='jet', origin='lower',
+                   vmax=np.max(result[:, show[0]]), vmin=np.min(result[:, show[0]]))
         plt.colorbar()
         plt.title("Original data")
         plt.show()

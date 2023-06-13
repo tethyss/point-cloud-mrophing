@@ -3,7 +3,7 @@ from utils import *
 
 
 def plot_variogram(variograms):
-    fig, axs = plt.subplots(1, 3, figsize = (15, 2))
+    fig, axs = plt.subplots(1, 3, figsize = (15, 2.5))
     plt.subplots_adjust(left = 0.08, bottom = 0.05, right = 0.98, top = 0.95, wspace = 0.5, hspace = 0.2)
     axs[0].plot(variograms[:, 0], variograms[:, 2], linewidth = 1.5, color = 'b')
     axs[0].tick_params(axis = 'both', labelsize = 15)
@@ -28,10 +28,10 @@ rawdata, show, y_label = read_data(test=True)
 if os.path.exists('./result/variogram_exhausted_test.npy'):
     rawdata_variogram = np.load('./result/variogram_exhausted_test.npy')
 else:
-    pt = preprocessing.PowerTransformer(method = 'box-cox')
+    scaler = preprocessing.StandardScaler()
     data = rawdata.copy()
-    data[:, 2:] = pt.fit_transform(rawdata[:, 2:])
-    rawdata_variogram = variogram_gam(data, lag=4, nlag=50, trace=True)
+    data[:, 2:] = scaler.fit_transform(rawdata[:, 2:])
+    rawdata_variogram = variogram_gam(data, lag=2, nlag=100, trace=True)
     np.save('./result/variogram_exhausted_test.npy', rawdata_variogram)
 model = vmodel(rawdata_variogram, guess=[0, 10, 110, 0.85])
 plot_variogram(rawdata_variogram)
