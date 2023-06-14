@@ -1,0 +1,46 @@
+import os
+from utils import *
+
+
+def plot_variogram(variograms):
+    fig, axs = plt.subplots(1, 3, figsize = (15, 2.5))
+    plt.subplots_adjust(left = 0.08, bottom = 0.05, right = 0.98, top = 0.95, wspace = 0.5, hspace = 0.2)
+    axs[0].plot(variograms[:, 0], variograms[:, 2], linewidth = 1.5, color = 'b')
+    axs[0].tick_params(axis = 'both', labelsize = 15)
+    axs[0].set_box_aspect(1 / 2)
+    axs[0].set_ylim(0, 1.5)
+    axs[1].plot(variograms[:, 0], variograms[:, 3], linewidth = 1.5, color = 'b')
+    axs[1].tick_params(axis = 'both', labelsize = 15)
+    axs[1].set_box_aspect(1 / 2)
+    axs[1].set_ylim(-0.75, 0.75)
+    axs[2].plot(variograms[:, 0], variograms[:, 4], linewidth = 1.5, color = 'b')
+    axs[2].tick_params(axis = 'both', labelsize = 15)
+    axs[2].set_box_aspect(1 / 2)
+    axs[2].set_ylim(0, 1.5)
+    plt.savefig('./variogram of data/variogram of test rawdata.pdf', dpi = 330)
+    plt.show()
+
+
+'read origin data'
+rawdata, show, y_label = read_data(test=True)
+
+'calculate variogram for rawdata'
+if os.path.exists('./result/variogram_exhausted_test1.npy'):
+    rawdata_variogram = np.load('./result/variogram_exhausted_test.npy')
+else:
+    'read origin data'
+    rawdata = np.empty((200, 200, 6))
+    for i in range(6):
+        rawdata[:, :, i] = np.loadtxt('./benchmark/Reference_Z' + str(i + 1) + '_numpy.txt')
+    'add location'
+    data=np.empty((200*200,8))
+    for i in range(200 * 200):
+        data[i, :] = np.hstack((int(i % 200), int(i // 200), rawdata[i // 200, i % 200, :]))
+    # data[:,2:]=(data[:,2:]-np.mean(data[:,2:], axis=0))/np.std(data[:,2:], axis=0)
+    # rawdata_variogram = variogram_gam(data, lag=2, nlag=100, trace=True)
+    # np.save('./result/variogram_exhausted_test.npy', rawdata_variogram)
+# model = vmodel(rawdata_variogram, guess=[0, 10, 110, 0.85])
+# plot_variogram(rawdata_variogram)
+plt.imshow(data[:,2].reshape((200, 200)), cmap='jet')
+plt.show()
+np.save('./result/rawdata_demo.npy', data)
