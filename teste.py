@@ -1,39 +1,30 @@
+import geostatspy.geostats as geostats
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
-from utils import *
+rawdata = pd.read_excel('./data.xlsx', header=0)
+rawdata1=rawdata.copy()
+# scaler = StandardScaler()
+# rawdata1[rawdata.columns[2:]] = pd.DataFrame(scaler.fit_transform(rawdata[rawdata.columns[2:]]), columns=rawdata.columns[2:])
+# rawdata['NAg'], _, _ = geostats.nscore(rawdata, 'Ag')
 
-'read origin data'
-rawdata = np.empty((200, 200, 6))
-for i in range(6):
-    rawdata[:, :, i] = np.loadtxt('./benchmark/Reference_Z' + str(i + 1) + '_numpy.txt')
-'add location'
-data = np.empty((200 * 200, 8))
-for i in range(200 * 200):
-    data[i, :] = np.hstack((int(i % 200), int(i // 200), rawdata[i // 200, i % 200, :]))
-# data[:,2:]=(data[:,2:]-np.mean(data[:,2:], axis=0))/np.std(data[:,2:], axis=0)
 
-"random landmarks"
-landmarks = np.loadtxt('./benchmark/Conditioning_Data_6dim_Numpy.txt')
-# landmarks[:, 2:] = (landmarks[:, 2:] - np.mean(landmarks[:, 2:], axis=0)) / np.std(landmarks[:, 2:], axis=0)
 
-landmarks_cdf = convert_to_cdf(landmarks.copy(), show_config=[2, 3], if_show=True, color='b')
+tmin=-1.0e21
+tmax=1.0e21
+lag=4
+lag_tol=2
+nlag=50
+azi=0
+azi_tol=90
+bandwidth=1000
+lags, gammas, npps = geostats.gamv(rawdata1,"locx","locy","Ag",tmin,tmax,lag,lag_tol,nlag,azi,azi_tol,bandwidth,isill=1.0)
 
-mf_raw_container = np.load('mf_raw.npy')
-mf_sim = np.load('result1.npy')
-
-result_container = np.empty((40000, 8, 100))
-for r in tqdm(range(100)):
-    show = False
-    if r <= 1:
-        show = True
-    result = TPS(mf_sim[:, :, r], mf_raw_container[:, :, r].copy(), landmarks, landmarks_cdf, data
-                 , knn=18, if_show=show, show=[2, 3], add=False)
-    result_container[:, :, r] = result.copy()
-
-result_etype = np.mean(result_container, axis=2)
-plt.imshow(result_etype[:, 2].reshape(200, 200), cmap='jet', origin='lower')
+scatter = plt.scatter(lags,gammas,color = 'darkorange',edgecolor='black',s = 0.05,label = 'Azimuth ' +str(azi))
+plt.plot([0,200],[1.0,1.0],color = 'black')
+plt.xlabel(r'Lag Distance $\bf(h)$, (m)')
+plt.ylabel(r'$\gamma \bf(h)$')
 plt.show()
-result_sd = np.std(result_container, axis=2)
-plt.imshow(result_sd[:, 2].reshape(200, 200), cmap='jet', origin='lower')
-plt.scatter(landmarks[:, 0], landmarks[:, 1], c='none', edgecolor='grey')
-plt.show()
+pass
