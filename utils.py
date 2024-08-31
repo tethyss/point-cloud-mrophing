@@ -16,6 +16,7 @@ from multiprocessing import Pool
 from sklearn.neighbors import NearestNeighbors
 from sklearn import preprocessing
 from tqdm import trange, tqdm
+from numba import njit
 
 
 def read_data(test):
@@ -144,8 +145,15 @@ def g2a(file, nlag, num_vario, type):
 
 def convert_to_cdf(pre_cdf, show_config, if_show, color='b'):
     after_cdf = pre_cdf.copy()
+    n = pre_cdf.shape[0]
+    ecdf_values = np.arange(1, n + 1) / n
     for ele in range(2, pre_cdf.shape[1]):
-        after_cdf[:, ele] = [percentileofscore(pre_cdf[:, ele], x) / 100.0 for x in pre_cdf[:, ele]]
+        # after_cdf[:, ele] = [percentileofscore(pre_cdf[:, ele], x) / 100.0 for x in pre_cdf[:, ele]]
+        sorted_indices = np.argsort(pre_cdf[:, ele])
+        original_ecdf_values = np.zeros_like(ecdf_values)
+        original_ecdf_values[sorted_indices] = ecdf_values
+        after_cdf[:, ele] = original_ecdf_values
+
     if if_show:
         ax1 = plt.subplot(121)
         ax1.set_title('raw data')
@@ -155,7 +163,7 @@ def convert_to_cdf(pre_cdf, show_config, if_show, color='b'):
         ax2.set_title('CDF')
         ax2.scatter(after_cdf[:200, show_config[0]], after_cdf[:200, show_config[1]], s=10, c=color)
         plt.axis('square')
-        plt.savefig('./result/datacdf.pdf', dpi=330)
+        plt.savefig('./result/datacdf.tiff', dpi=330)
         plt.show()
     return after_cdf
 
@@ -241,6 +249,7 @@ def transport(lm_cdf, maxit=1e8, if_show=False, show_config=None):
     x_cdf = lm_cdf.copy()
     for e in range(2, lm_cdf.shape[1]):
         x[:, e] = np.random.normal(0, 1, lm_cdf.shape[0])
+        x[:, e] = (x[:, e] - np.mean(x[:, e])) / np.std(x[:, e])
         x_cdf[:, e] = stats.norm.cdf(x[:, e], loc=0, scale=1)
     a, b = np.ones((len(lm_cdf),)) / len(lm_cdf), np.ones((len(lm_cdf),)) / len(lm_cdf)
     dist_matrix = ot.dist(lm_cdf[:, 2:], x_cdf[:, 2:])
@@ -256,7 +265,7 @@ def transport(lm_cdf, maxit=1e8, if_show=False, show_config=None):
         ax2.set_title('CDF')
         ax2.scatter(x_cdf[:200, show_config[0]], x_cdf[:200, show_config[1]], s=10, c='r')
         plt.axis('square')
-        plt.savefig('./result/mfcdf.pdf', dpi=330)
+        plt.savefig('./result/mfcdf.tiff', dpi=330)
         plt.show()
         plt.plot([lm_cdf[:100, show_config[0]], x_cdf[:100, show_config[0]]],
                  [lm_cdf[:100, show_config[1]], x_cdf[:100, show_config[1]]], c=[.5, .5, 1], alpha=0.2)
@@ -267,7 +276,7 @@ def transport(lm_cdf, maxit=1e8, if_show=False, show_config=None):
         plt.axis('square')
         plt.xlim(0, 1)
         plt.ylim(0, 1)
-        plt.savefig('./result/ot.pdf', dpi=330)
+        plt.savefig('./result/ot.tiff', dpi=330)
         plt.show()
     return x, x_cdf
 
@@ -291,25 +300,23 @@ def show_connect(lm_cdf, mf_cdf, show_config=[10, 12]):
 
 
 def sgs(input, if_show, vmodel):
-    grid = 335
-    if input.shape[0] == 199:
-        grid = 200
-    dim = input.shape[1]
+    grid = input.shape[0]
+    dim = int(input.shape[1])
     result = np.zeros((grid * grid, dim))
     result[:, :2] = np.hstack(
-        (np.tile(np.arange(1, grid + 1), grid).reshape((-1, 1)),
-         np.repeat(np.arange(1, grid + 1), grid).reshape((-1, 1))))
+        (np.tile(np.arange(0, grid), grid).reshape((-1, 1)),
+         np.repeat(np.arange(0, grid), grid).reshape((-1, 1))))
     a2g(input, "data4sim.dat")
     par = []
     for i in range(2, dim):
         parname = './exe/sgsim' + str(i - 2) + '.par'
         seed = random.randint(11111, 99999)
-        nug = vmodel[int(i - 2), 0]
+        nug = 0
         it1 = 2
-        cc1 = vmodel[int(i - 2), 3]
+        cc1 = vmodel[int(i - 2), 2]
         azi1 = 0.0
-        range1 = vmodel[int(i - 2), 1]
-        range2 = vmodel[int(i - 2), 2]
+        range1 = vmodel[int(i - 2), 0]
+        range2 = vmodel[int(i - 2), 1]
 
         with open(parname, "w") as f:
             f.write("              Parameters for SGSIM                                         \n")
@@ -369,7 +376,7 @@ def sgs(input, if_show, vmodel):
         plt.imshow(result[:, c_for_show].reshape(grid, grid), cmap='jet', origin='lower', vmax=4.1, vmin=-4.1)
         plt.title("SGSim result with landmarks")
         plt.colorbar()
-        plt.scatter(input[:100, 0], input[:100, 1], c=input[:100, c_for_show], cmap="jet", s=10, edgecolor='0.5',
+        plt.scatter(input[:, 0], input[:, 1], c=input[:, c_for_show], cmap="jet", s=10, edgecolor='0.5',
                     vmax=4.1,
                     vmin=-4.1)
         plt.xlim([0, grid])
@@ -446,33 +453,67 @@ def lgt(data, typ):
     return mf_logit
 
 
-def exponential_two(h, nug, r1, r2, c):
-    result = np.zeros(h.shape)
-    for idx, r in enumerate(h):
-        if r <= r1:
-            result[idx] = c * (1 - math.exp(-3 * r / r1))
-        elif r1 <= r <= r2:
-            result[idx] = c + (1 - nug - c) * (1 - math.exp(-3 * (r - r1) / r2))
-        else:
-            result[idx] = c + (1 - nug - c) * (1 - math.exp(-3 * (r2 - r1) / r2))
-    return result + nug
+def spherical_model(h, range_param, sill):
+    """Spherical model for variogram."""
+    model = np.zeros_like(h)
+    mask = h <= range_param
+    model[mask] = sill * (1.5 * (h[mask] / range_param) - 0.5 * (h[mask] / range_param) ** 3)
+    model[~mask] = sill
+    return model
+
+
+def spherical_two(h, r1, r2, c1):
+    model = np.zeros_like(h)
+
+    # First spherical model
+    mask1 = h <= r1
+    model[mask1] = spherical_model(h[mask1], r1, c1)
+
+    # Second spherical model starting from where the first ends
+    mask2 = (h > r1) & (h <= r2)
+    c2 = 1 - c1  # Sill for the second model to reach 1 at the end
+    model[mask2] = spherical_model(h[mask2] - r1, r2 - r1, c2) + c1
+
+    # Horizontal line at 1 for h > r2
+    model[h > r2] = 1
+    return model
 
 
 def vmodel(variogram, guess=None):
     if guess is None:
-        guess = [0, 10, 110, 0.85]
+        guess = [10, 110, 0.85]
     x = variogram[:, 0]
-    if variogram.shape[1] == 5:
-        parameters = np.zeros((2, 4))
-    elif variogram.shape[1] == 327:
-        parameters = np.zeros((25, 4))
-    else:
-        parameters = np.zeros((6, 4))
-    for i in range(parameters.shape[0]):
-        v = int((2 * parameters.shape[0] + 1 - i) * i / 2)
+    num_var = int((np.sqrt(8*(variogram.shape[1]-2)+1)-1)/2)
+    parameters = np.zeros((num_var, 3))
+    for i in range(num_var):
+        v = int((2 * num_var + 1 - i) * i / 2)
         y = variogram[:, v + 2]
-        parameters[i] ,_ = curve_fit(exponential_two, x, y, p0=guess, bounds=(0, 335))
+        parameters[i], _ = curve_fit(spherical_two, x, y, p0=guess, bounds=(0, [np.max(x), np.max(x), 1]))
+
     return parameters
+
+
+@njit
+def variogram_omni(data, dist, Lag, Nlag, LagTol, NumVar=6):
+    """FnMat """
+    FnMat = np.zeros((Nlag + 1, int(2 + NumVar * (NumVar + 1) / 2)))
+    for n in range(Nlag):
+        loc_x, loc_y = np.where((dist > Lag * (n + 1) - LagTol) & (dist < Lag * (n + 1) + LagTol))
+        for i_Sam, j_Sam in zip(loc_x,loc_y):
+            'count'
+            FnMat[n + 1, 1] += 1
+            'average dist'
+            FnMat[n + 1, 0] += dist[i_Sam, j_Sam]
+            tPos = 2
+            for v1 in range(NumVar):
+                for v2 in range(v1, NumVar):
+                    FnMat[n + 1, tPos] += (data[i_Sam, v1 + 2] - data[j_Sam, v1 + 2]) * (
+                                data[i_Sam, v2 + 2] - data[j_Sam, v2 + 2])
+                    tPos += 1
+        FnMat[n + 1, 2:] = FnMat[n + 1, 2:] / (2 * FnMat[n + 1, 1])
+        FnMat[n + 1, 0] = FnMat[n + 1, 0] / FnMat[n + 1, 1]  # Average distance
+        FnMat[n + 1, 1] = FnMat[n + 1, 1] / 2  # Without duplicates
+    return FnMat
 
 
 def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show):
@@ -491,7 +532,7 @@ def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show):
     lm_base = np.empty_like(sim) - 1
     lm_base[:len(lm)] += lm_cdf.copy()
     'interpolation location'
-    rand=[num for num in list(range(len(sim))) if num not in (lm[:,0]+lm[:,1]*335)]
+    rand = [num for num in list(range(len(sim))) if num not in (lm[:, 0] + lm[:, 1] * 335)]
     np.random.shuffle(rand)
     result = sim.copy()
 
