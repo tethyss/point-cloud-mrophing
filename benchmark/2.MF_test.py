@@ -2,7 +2,7 @@ from utils import *
 
 rawdata = np.load('./result/bmdata.npy')
 show_config = [2, 3]
-mf_repeat = 200
+mf_repeat = 50
 nlag = 15
 
 "random landmarks"
@@ -23,7 +23,7 @@ M_Dist = ot.dist(mf_raw_container[:, 0:2, 0], mf_raw_container[:, 0:2, 0], metri
 variogram_mf = np.zeros((int(nlag + 1), int(n_variogram + 2), mf_repeat))
 variogram_mf_avg = np.zeros((int(nlag + 1), int(n_variogram + 2)))
 for r in tqdm(range(mf_repeat), position=0, leave=True):
-    variogram_mf[:, :, r] += variogram_omni(mf_raw_container[:, :, r], M_Dist, Lag=4, Nlag=nlag, LagTol=2, NumVar=6)
+    variogram_mf[:, :, r] = variogram_omni(mf_raw_container[:, :, r], M_Dist, Lag=4, Nlag=nlag, LagTol=2, NumVar=6)
     variogram_mf_avg += variogram_mf[:, :, r]
 variogram_mf_avg = variogram_mf_avg / mf_repeat
 model = vmodel(variogram_mf_avg[1:, :], guess=[10, 35, 0.6])

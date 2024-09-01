@@ -8,7 +8,6 @@ import random
 import ot
 import subprocess as sp
 import math
-from scipy import interpolate
 import scipy.stats as stats
 from scipy.stats import percentileofscore
 from scipy.optimize import curve_fit
@@ -146,7 +145,7 @@ def g2a(file, nlag, num_vario, type):
 def convert_to_cdf(pre_cdf, show_config, if_show, color='b'):
     after_cdf = pre_cdf.copy()
     n = pre_cdf.shape[0]
-    ecdf_values = np.arange(1, n + 1) / n
+    ecdf_values = np.arange(1, n + 1) / (n+1)
     for ele in range(2, pre_cdf.shape[1]):
         # after_cdf[:, ele] = [percentileofscore(pre_cdf[:, ele], x) / 100.0 for x in pre_cdf[:, ele]]
         sorted_indices = np.argsort(pre_cdf[:, ele])
@@ -299,8 +298,7 @@ def show_connect(lm_cdf, mf_cdf, show_config=[10, 12]):
     plt.show()
 
 
-def sgs(input, if_show, vmodel):
-    grid = input.shape[0]
+def sgs(input, grid, if_show, vmodel):
     dim = int(input.shape[1])
     result = np.zeros((grid * grid, dim))
     result[:, :2] = np.hstack(
@@ -498,26 +496,32 @@ def variogram_omni(data, dist, Lag, Nlag, LagTol, NumVar=6):
     """FnMat """
     FnMat = np.zeros((Nlag + 1, int(2 + NumVar * (NumVar + 1) / 2)))
     for n in range(Nlag):
-        loc_x, loc_y = np.where((dist > Lag * (n + 1) - LagTol) & (dist < Lag * (n + 1) + LagTol))
-        for i_Sam, j_Sam in zip(loc_x,loc_y):
+        lag_n = Lag * (n + 1)
+        lag_min = lag_n - LagTol
+        lag_max = lag_n + LagTol
+        loc_x, loc_y = np.where((dist > lag_min) & (dist < lag_max))
+        count = 0
+        dist_sum = 0
+        for i_Sam, j_Sam in zip(loc_x, loc_y):
             'count'
-            FnMat[n + 1, 1] += 1
+            count += 1
             'average dist'
-            FnMat[n + 1, 0] += dist[i_Sam, j_Sam]
+            dist_sum += dist[i_Sam, j_Sam]
             tPos = 2
             for v1 in range(NumVar):
                 for v2 in range(v1, NumVar):
                     FnMat[n + 1, tPos] += (data[i_Sam, v1 + 2] - data[j_Sam, v1 + 2]) * (
                                 data[i_Sam, v2 + 2] - data[j_Sam, v2 + 2])
                     tPos += 1
-        FnMat[n + 1, 2:] = FnMat[n + 1, 2:] / (2 * FnMat[n + 1, 1])
-        FnMat[n + 1, 0] = FnMat[n + 1, 0] / FnMat[n + 1, 1]  # Average distance
-        FnMat[n + 1, 1] = FnMat[n + 1, 1] / 2  # Without duplicates
+        FnMat[n + 1, 2:] = FnMat[n + 1, 2:] / (2 * count)
+        FnMat[n + 1, 0] = dist_sum / count  # Average distance
+        FnMat[n + 1, 1] = count / 2  # Without duplicates
     return FnMat
 
 
+@njit
 def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show):
-    grid = 335
+    grid = rawdata.shape[0]
     'to CDF'
     for e in range(2, len(mf[1])):
         mf[:, e] = stats.norm.cdf(mf[:, e], loc=0, scale=1)
@@ -527,12 +531,12 @@ def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show):
     mf = lgt(mf, typ=1)
     lm_cdf = lgt(lm_cdf, typ=1)
     'generating anchors'
-    mf_base = np.empty_like(sim) - 1
+    mf_base = np.empty_like(sim)
     mf_base[:len(mf)] += mf.copy()
-    lm_base = np.empty_like(sim) - 1
+    lm_base = np.empty_like(sim)
     lm_base[:len(lm)] += lm_cdf.copy()
     'interpolation location'
-    rand = [num for num in list(range(len(sim))) if num not in (lm[:, 0] + lm[:, 1] * 335)]
+    rand = [num for num in list(range(len(sim))) if num not in (lm[:, 0] + lm[:, 1] * grid)]
     np.random.shuffle(rand)
     result = sim.copy()
 
@@ -557,8 +561,8 @@ def TPS(sim, mf, lm, lm_cdf, rawdata, knn, if_show, show):
         plt.colorbar()
         plt.title("SMMT result")
         plt.show()
-        plt.imshow(rawdata[:, show[0]].reshape(grid, grid), cmap='jet', origin='lower',
-                   vmax=np.max(result[:, show[0]]), vmin=np.min(result[:, show[0]]))
+        plt.imshow(rawdata[:, (show[0]-2)], cmap='jet', origin='lower',
+                   vmax=np.max(result[:, (show[0]-2)]), vmin=np.min(result[:, (show[0]-2)]))
         plt.colorbar()
         plt.title("Original data")
         plt.show()
