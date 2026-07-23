@@ -9,6 +9,9 @@ Gaussian morphing factors using optimal transport, simulate factors independentl
 with GSLIB `sgsim`, then map them back to the original variable space using local
 thin-plate splines in logit space.
 
+> The `2022-Morphing-master/` directory is retained locally as the original
+> authors' reference implementation. Production code lives in
+> `src/point_cloud_morphing/`; `morphing.py` is a compatibility entry point.
 
 ## Features
 
@@ -41,7 +44,13 @@ python -m pip install -e ".[dev]"
 ```
 
 The editable installation exposes the `smmt` command. You can also invoke the
-compatible script entry point with `python morphing.py`.
+package without relying on the operating-system script path:
+
+```powershell
+python -m point_cloud_morphing --help
+```
+
+The historical `python morphing.py` entry point remains supported.
 
 ## Data Access
 
@@ -51,15 +60,13 @@ public reproduction test, benchmark run, or downloadable sample dataset at this
 time. The repository documents the method, software interface, and integration
 requirements only.
 
-Trial run on open-access data will be added in the future.
-
 ## CSV Input Contract
 
 CSV input must contain every node of one regular 2D grid exactly once. By default,
 the first two columns are used as X and Y coordinates. Select alternatives with
-`--x-column` and `--y-column`. By default, all columns after the coordinates are
-used except case-insensitive `DEM`, `Slope`, and `granites`; select exact variables
-with `--variables`:
+`--x-column` and `--y-column`. By default, all non-coordinate columns are used
+except case-insensitive `DEM`, `Slope`, and `granites`; select exact variables with
+`--variables`:
 
 ```powershell
 smmt --dataset csv --input data.csv --x-column x --y-column y --variables Ag,Al,Au
@@ -94,11 +101,25 @@ Key options: `--dataset`, `--input`, `--variables`, `--landmarks`, `--pairings`,
 `--realizations`, `--neighbors`, `--lag`, `--nlag`, `--seed`, `--gslib-dir`,
 `--output`, `--skip-mapping`, and `--log-level`.
 
+## Code Structure
+
+- `models.py`: validated domain models and runtime configuration
+- `data.py`: input contracts, grid inference, and landmark sampling
+- `pairing.py`: empirical CDFs and optimal-transport pairing
+- `variogram.py`: experimental variograms and model fitting
+- `gslib.py`: SGSIM parameter generation, process execution, and output checks
+- `mapping.py`: local TPS mapping and marginal back-transformation
+- `pipeline.py`: end-to-end workflow orchestration and output persistence
+- `cli.py`: command-line parsing and logging setup
+
+The public API is exported from `point_cloud_morphing`. New integrations should
+import the package rather than legacy modules such as `utils.py`.
+
 ## Development
 
 ```powershell
-ruff check .
-python -m py_compile morphing.py
+ruff check src morphing.py
+python -m compileall -q src morphing.py
 ```
 
 ## Citation and Acknowledgement
@@ -106,13 +127,17 @@ python -m py_compile morphing.py
 Please cite the original SMMT paper when using this implementation in approved
 work:
 
-> Avalos, S. and Ortiz, J.M., 2023. Spatial multivariate morphing transformation. Mathematical Geosciences, 55(6), pp.735-771.
+> Avalos, S. and Ortiz, J.M., 2023. Spatial multivariate morphing transformation.
+> Mathematical Geosciences, 55(6), pp.735-771.
 
 or
 
-> Li, T. and Ortiz, J.M., 2022. Spatial multivariate morphing transformation on geochemical data augmentation1. Predictive Geometallurgy and Geostatistics Lab, p.119.
+> Li, T. and Ortiz, J.M., 2022. Spatial multivariate morphing transformation on
+> geochemical data augmentation1. Predictive Geometallurgy and Geostatistics Lab,
+> p.119.
 
-GSLIB is an external dependency and is not distributed by this project.
+The original authors' source code is included locally as a reference for scientific
+comparison. GSLIB is an external dependency and is not distributed by this project.
 
 ## License
 
