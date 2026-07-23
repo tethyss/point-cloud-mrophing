@@ -9,10 +9,6 @@ Gaussian morphing factors using optimal transport, simulate factors independentl
 with GSLIB `sgsim`, then map them back to the original variable space using local
 thin-plate splines in logit space.
 
-> The `2022-Morphing-master/` directory is retained locally as the original
-> authors' reference implementation. Production code lives in
-> `src/point_cloud_morphing/`; `morphing.py` is a compatibility entry point.
-
 ## Features
 
 - Supports the original **200 × 200, six-variable** benchmark conditioning data.
