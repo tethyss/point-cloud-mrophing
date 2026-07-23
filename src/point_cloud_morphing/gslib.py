@@ -17,11 +17,19 @@ LOGGER = logging.getLogger(__name__)
 class SgsimRunner:
     """Run independent conditional simulations through a local SGSIM binary."""
 
-    def __init__(self, executable: Path, work_dir: Path) -> None:
+    def __init__(
+        self,
+        executable: Path,
+        work_dir: Path,
+        timeout: float = 120.0,
+    ) -> None:
         self.executable = executable.resolve()
         self.work_dir = work_dir.resolve()
+        self.timeout = timeout
         if not self.executable.is_file():
             raise FileNotFoundError(f"Cannot find SGSIM executable: {self.executable}")
+        if timeout <= 0:
+            raise ValueError("SGSIM timeout must be positive.")
         self.work_dir.mkdir(parents=True, exist_ok=True)
 
     def simulate(
@@ -65,8 +73,10 @@ class SgsimRunner:
         data_file = self.work_dir / f"mf_conditioning_{file_stem}.dat"
         parameter_file = self.work_dir / f"sgsim_{file_stem}.par"
         output_file = self.work_dir / f"sgsim_{file_stem}.out"
+        log_file = self.work_dir / f"sgsim_{file_stem}.log"
 
         write_gslib_data(data_file, coordinates, values)
+        output_file.unlink(missing_ok=True)
         random_seed = int(generator.integers(10_001, 999_999)) | 1
         parameter_text = build_sgsim_parameters(
             data_file=data_file,
@@ -83,6 +93,10 @@ class SgsimRunner:
             variable_index,
         )
         completed = self._execute(parameter_file)
+        log_file.write_text(
+            _format_process_log(completed),
+            encoding="utf-8",
+        )
         if completed.returncode != 0 or not output_file.exists():
             details = "\n".join(
                 message
@@ -110,7 +124,13 @@ class SgsimRunner:
                 capture_output=True,
                 check=False,
                 text=True,
+                timeout=self.timeout,
             )
+        except subprocess.TimeoutExpired as error:
+            raise RuntimeError(
+                f"SGSIM exceeded the {self.timeout:g}-second timeout while using "
+                f"{parameter_file.name}."
+            ) from error
         except OSError as error:
             raise RuntimeError(
                 f"Unable to launch SGSIM executable {self.executable}: {error}"
@@ -214,14 +234,30 @@ def run_sgsim(
     grid: Grid,
     models: Sequence[VariogramModel],
     generator: np.random.Generator,
+    timeout: float = 120.0,
 ) -> np.ndarray:
     """Compatibility wrapper around :class:`SgsimRunner`."""
 
-    return SgsimRunner(executable, work_dir).simulate(
+    return SgsimRunner(executable, work_dir, timeout=timeout).simulate(
         realization_index=realization_index,
         coordinates=coordinates,
         morphing_factors=morphing_factors,
         grid=grid,
         models=models,
         generator=generator,
+    )
+
+
+def _format_process_log(completed: subprocess.CompletedProcess[str]) -> str:
+    """Format SGSIM process diagnostics for later inspection."""
+
+    return "\n".join(
+        (
+            f"return_code={completed.returncode}",
+            "[stdout]",
+            completed.stdout.rstrip(),
+            "[stderr]",
+            completed.stderr.rstrip(),
+            "",
+        )
     )

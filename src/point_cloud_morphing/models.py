@@ -93,7 +93,7 @@ class PipelineConfig:
     variables: str | None = None
     x_column: str | None = None
     y_column: str | None = None
-    landmarks: int = 200
+    landmarks: int | None = None
     pairings: int = 20
     realizations: int = 1
     neighbors: int | None = None
@@ -103,15 +103,25 @@ class PipelineConfig:
     gslib_dir: Path = Path("gslibexe")
     output_dir: Path = Path("result/smmt")
     skip_mapping: bool = False
+    marginal_correction: bool = True
+    diagnostics: bool = True
+    sgsim_timeout: float = 120.0
 
     def __post_init__(self) -> None:
         if self.dataset_kind not in {"csv", "benchmark"}:
             raise ValueError("Dataset kind must be 'csv' or 'benchmark'.")
-        if self.landmarks < 3:
+        if self.landmarks is not None and self.landmarks < 3:
             raise ValueError("At least three landmarks are required.")
         if self.pairings < 1 or self.realizations < 1:
             raise ValueError("Pairings and realizations must be positive.")
+        if self.pairings < self.realizations:
+            raise ValueError(
+                "Pairings must be greater than or equal to realizations so each "
+                "realization uses its own paired morphing factors."
+            )
         if self.nlag < 3:
             raise ValueError("At least three variogram lags are required.")
         if self.lag is not None and self.lag <= 0:
             raise ValueError("Variogram lag distance must be positive.")
+        if self.sgsim_timeout <= 0:
+            raise ValueError("SGSIM timeout must be positive.")

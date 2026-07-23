@@ -11,8 +11,8 @@ thin-plate splines in logit space.
 
 ## Features
 
-- Supports the original **200 × 200, six-variable** benchmark conditioning data.
-- Supports regular-grid CSV data, including the **335 × 335** multivariate dataset.
+- Supports the original **200 x 200, six-variable** benchmark conditioning data.
+- Supports regular-grid CSV data, including the **335 x 335** multivariate dataset.
 - Validates grid completeness, finite numeric inputs, TPS neighborhood size, and
   SGSIM output shape.
 - Persists realization outputs, OT pairings, fitted variograms, and run metadata
@@ -35,18 +35,33 @@ directory with `--gslib-dir`.
 ```powershell
 git clone https://github.com/tethyss/point-cloud-mrophing.git
 cd point-cloud-mrophing
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
+py -m pip install --upgrade pip
+py -m pip install -e ".[dev]"
 ```
 
-The editable installation exposes the `smmt` command. You can also invoke the
-package without relying on the operating-system script path:
+On Windows, use the module entry point so the Python Scripts directory does not
+need to be added to `PATH`:
 
 ```powershell
-python -m point_cloud_morphing --help
+py -m point_cloud_morphing --help
 ```
 
-The historical `python morphing.py` entry point remains supported.
+The historical `py morphing.py` entry point remains supported.
+
+## PyCharm
+
+Create a Python run configuration with:
+
+- Script path: `<project>/morphing.py`
+- Working directory: the project root
+- Interpreter: the environment where `py -m pip install -e ".[dev]"` was run
+- Parameters: the same options documented below
+
+For the local benchmark, use:
+
+```text
+--dataset benchmark --input benchmark/bmdata/Conditioning_Data_6dim_Numpy.txt --pairings 20 --realizations 1 --neighbors 18 --lag 4 --nlag 30 --gslib-dir benchmark --output result/smmt_benchmark
+```
 
 ## Data Access
 
@@ -65,7 +80,7 @@ except case-insensitive `DEM`, `Slope`, and `granites`; select exact variables w
 `--variables`:
 
 ```powershell
-smmt --dataset csv --input data.csv --x-column x --y-column y --variables Ag,Al,Au
+py -m point_cloud_morphing --dataset csv --input data.csv --x-column x --y-column y --variables Ag,Al,Au
 ```
 
 All selected values must be finite and numeric. The number of landmarks and TPS
@@ -86,16 +101,29 @@ Approved internal runs write to `result/smmt/` by default:
 - `pairings_and_variograms.npz`: OT pairings, average MFs, and experimental variograms
 - `realization_*.npz`: coordinates plus simulated values, or MF values with `--skip-mapping`
 - `gslib/`: generated conditioning data, SGSIM parameter files, logs, and outputs
+- `diagnostics/`: stage-by-stage PNG plots and per-realization quality metrics
+
+Diagnostics include input/landmarks, OT pairing, average morphing factors,
+variogram fitting, simulated morphing factors, mapped variables, marginal
+distributions, correlation reproduction, and direct-variogram reproduction. Use
+`--no-diagnostics` only for performance-focused runs.
+
+The scalable mapping keeps a fixed set of spatially nearest landmarks instead of
+inserting every previously mapped grid node. A rank-based marginal correction is
+therefore enabled by default to prevent variance shrinkage while preserving each
+variable's spatial ordering and the mapped rank dependence. Use
+`--no-marginal-correction` to inspect the uncorrected TPS output.
 
 ## Command Reference
 
 ```text
-smmt --help
+py -m point_cloud_morphing --help
 ```
 
 Key options: `--dataset`, `--input`, `--variables`, `--landmarks`, `--pairings`,
 `--realizations`, `--neighbors`, `--lag`, `--nlag`, `--seed`, `--gslib-dir`,
-`--output`, `--skip-mapping`, and `--log-level`.
+`--output`, `--sgsim-timeout`, `--skip-mapping`,
+`--no-marginal-correction`, `--no-diagnostics`, and `--log-level`.
 
 ## Code Structure
 

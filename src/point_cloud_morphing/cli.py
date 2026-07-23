@@ -39,8 +39,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--landmarks",
         type=int,
-        default=200,
-        help="Number of conditioning landmarks.",
+        help=(
+            "Number of conditioning landmarks. Defaults to all benchmark samples "
+            "or 200 CSV nodes."
+        ),
     )
     parser.add_argument(
         "--pairings",
@@ -74,9 +76,25 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gslib-dir", type=Path, default=Path("gslibexe"))
     parser.add_argument("--output", type=Path, default=Path("result/smmt"))
     parser.add_argument(
+        "--sgsim-timeout",
+        type=float,
+        default=120.0,
+        help="Maximum seconds allowed for each SGSIM process.",
+    )
+    parser.add_argument(
         "--skip-mapping",
         action="store_true",
         help="Save MF simulations without TPS back-mapping.",
+    )
+    parser.add_argument(
+        "--no-marginal-correction",
+        action="store_true",
+        help="Disable rank-based marginal correction after TPS mapping.",
+    )
+    parser.add_argument(
+        "--no-diagnostics",
+        action="store_true",
+        help="Disable stage-by-stage PNG diagnostic plots.",
     )
     parser.add_argument(
         "--log-level",
@@ -112,6 +130,9 @@ def parse_config(argv: Sequence[str] | None = None) -> tuple[PipelineConfig, str
         gslib_dir=arguments.gslib_dir,
         output_dir=arguments.output,
         skip_mapping=arguments.skip_mapping,
+        marginal_correction=not arguments.no_marginal_correction,
+        diagnostics=not arguments.no_diagnostics,
+        sgsim_timeout=arguments.sgsim_timeout,
     )
     return config, arguments.log_level
 

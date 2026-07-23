@@ -17,6 +17,7 @@ from .data import (
     load_csv_dataset,
     select_landmarks,
 )
+from .diagnostics import DiagnosticWriter
 from .gslib import SgsimRunner
 from .mapping import map_to_original_space
 from .models import Dataset, PipelineConfig, VariogramModel
@@ -37,32 +38,54 @@ class SmmtPipeline:
         """Run the configured workflow and return generated realization paths."""
 
         dataset = self._load_dataset()
-        landmarks = select_landmarks(
-            dataset,
-            self.config.landmarks,
-            self.generator,
-        )
-        neighbors = self._resolve_neighbors(dataset)
+        landmarks = self._select_landmarks(dataset)
+        neighbors = self._resolve_neighbors(landmarks)
         output_dir, work_dir = self._prepare_output_directories()
         runner = SgsimRunner(
             executable=self.config.gslib_dir / "sgsim.exe",
             work_dir=work_dir,
+            timeout=self.config.sgsim_timeout,
+        )
+        diagnostics = (
+            DiagnosticWriter(
+                output_dir=output_dir / "diagnostics",
+                grid=dataset.grid,
+                variable_names=dataset.variable_names,
+            )
+            if self.config.diagnostics
+            else None
         )
 
         LOGGER.info(
-            "Dataset: %s nodes, %s variables, grid %sx%s.",
+            "Dataset: %s input samples, %s landmarks, %s variables, grid %sx%s.",
             len(dataset.coordinates),
+            len(landmarks.coordinates),
             dataset.variable_count,
             dataset.grid.nx,
             dataset.grid.ny,
         )
-        pairing_mf, lags, variograms, models = self._prepare_morphing_models(
-            dataset,
-            landmarks,
+        if diagnostics is not None:
+            diagnostics.input_and_landmarks(dataset, landmarks)
+
+        target_cdf, pairing_mf, lags, variograms, models = (
+            self._prepare_morphing_models(
+                dataset,
+                landmarks,
+            )
         )
+        if diagnostics is not None:
+            diagnostics.optimal_transport(target_cdf, pairing_mf[0])
+            diagnostics.average_morphing_factors(
+                landmarks.coordinates,
+                pairing_mf.mean(axis=0),
+            )
+            diagnostics.variograms(lags, variograms, models)
+
         self._save_supporting_outputs(
             output_dir=output_dir,
             dataset=dataset,
+            landmarks=landmarks,
+            target_cdf=target_cdf,
             pairing_mf=pairing_mf,
             lags=lags,
             variograms=variograms,
@@ -76,6 +99,9 @@ class SmmtPipeline:
             neighbors=neighbors,
             runner=runner,
             output_dir=output_dir,
+            diagnostics=diagnostics,
+            lags=lags,
+            variograms=variograms,
         )
 
     def _load_dataset(self) -> Dataset:
@@ -89,15 +115,26 @@ class SmmtPipeline:
             y_column=self.config.y_column,
         )
 
-    def _resolve_neighbors(self, dataset: Dataset) -> int:
-        minimum_neighbors = dataset.variable_count + 2
+    def _select_landmarks(self, dataset: Dataset) -> Dataset:
+        if self.config.landmarks is None:
+            count = (
+                len(dataset.coordinates)
+                if self.config.dataset_kind == "benchmark"
+                else min(200, len(dataset.coordinates))
+            )
+        else:
+            count = self.config.landmarks
+        return select_landmarks(dataset, count, self.generator)
+
+    def _resolve_neighbors(self, landmarks: Dataset) -> int:
+        minimum_neighbors = landmarks.variable_count + 2
         neighbors = self.config.neighbors or max(18, minimum_neighbors)
         if neighbors < minimum_neighbors:
             raise ValueError(
                 f"TPS requires at least {minimum_neighbors} neighbors "
-                f"for {dataset.variable_count} variables."
+                f"for {landmarks.variable_count} variables."
             )
-        if neighbors > self.config.landmarks:
+        if neighbors > len(landmarks.coordinates):
             raise ValueError("TPS neighbors cannot exceed the landmark count.")
         return neighbors
 
@@ -112,7 +149,13 @@ class SmmtPipeline:
         self,
         dataset: Dataset,
         landmarks: Dataset,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[VariogramModel]]:
+    ) -> tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        list[VariogramModel],
+    ]:
         target_cdf = empirical_cdf(landmarks.values)
         pairing_mf = np.stack(
             [
@@ -123,7 +166,7 @@ class SmmtPipeline:
         )
 
         average_mf = pairing_mf.mean(axis=0)
-        lag = self.config.lag or max(dataset.grid.x_size, dataset.grid.y_size)
+        lag = self._resolve_lag(dataset)
         lags, variograms = experimental_variogram(
             landmarks.coordinates,
             average_mf,
@@ -132,12 +175,28 @@ class SmmtPipeline:
         )
         models = fit_variogram_models(lags, variograms)
         LOGGER.info("Fitted %s morphing-factor variogram models.", len(models))
-        return pairing_mf, lags, variograms, models
+        return target_cdf, pairing_mf, lags, variograms, models
+
+    def _resolve_lag(self, dataset: Dataset) -> float:
+        if self.config.lag is not None:
+            return self.config.lag
+        grid = dataset.grid
+        diagonal = np.hypot(
+            (grid.nx - 1) * grid.x_size,
+            (grid.ny - 1) * grid.y_size,
+        )
+        return max(
+            grid.x_size,
+            grid.y_size,
+            float(diagonal) / (2 * self.config.nlag),
+        )
 
     def _save_supporting_outputs(
         self,
         output_dir: Path,
         dataset: Dataset,
+        landmarks: Dataset,
+        target_cdf: np.ndarray,
         pairing_mf: np.ndarray,
         lags: np.ndarray,
         variograms: np.ndarray,
@@ -148,6 +207,9 @@ class SmmtPipeline:
             output_dir / "pairings_and_variograms.npz",
             pairing_mf=pairing_mf,
             average_mf=average_mf,
+            landmark_coordinates=landmarks.coordinates,
+            landmark_values=landmarks.values,
+            target_cdf=target_cdf,
             lags=lags,
             variograms=variograms,
         )
@@ -156,6 +218,7 @@ class SmmtPipeline:
             self.config,
             dataset,
             models,
+            landmark_count=len(landmarks.coordinates),
         )
 
     def _simulate_realizations(
@@ -167,6 +230,9 @@ class SmmtPipeline:
         neighbors: int,
         runner: SgsimRunner,
         output_dir: Path,
+        diagnostics: DiagnosticWriter | None,
+        lags: np.ndarray,
+        variograms: np.ndarray,
     ) -> list[Path]:
         outputs: list[Path] = []
         prediction_coordinates = dataset.grid.coordinates
@@ -175,7 +241,7 @@ class SmmtPipeline:
             self.config.realizations,
             desc="SMMT realizations",
         ):
-            paired_mf = pairing_mf[realization_index % self.config.pairings]
+            paired_mf = pairing_mf[realization_index]
             simulated_mf = runner.simulate(
                 realization_index=realization_index,
                 coordinates=landmarks.coordinates,
@@ -184,8 +250,15 @@ class SmmtPipeline:
                 models=models,
                 generator=self.generator,
             )
+            if diagnostics is not None:
+                diagnostics.simulated_morphing_factors(
+                    realization_index,
+                    prediction_coordinates,
+                    simulated_mf,
+                    landmarks,
+                )
             output_path = output_dir / f"realization_{realization_index:03d}.npz"
-            self._save_realization(
+            simulated_values = self._save_realization(
                 output_path=output_path,
                 prediction_coordinates=prediction_coordinates,
                 simulated_mf=simulated_mf,
@@ -194,6 +267,17 @@ class SmmtPipeline:
                 neighbors=neighbors,
                 variable_names=dataset.variable_names,
             )
+            if diagnostics is not None and simulated_values is not None:
+                diagnostics.mapped_realization(
+                    realization_index,
+                    prediction_coordinates,
+                    simulated_values,
+                    simulated_mf,
+                    landmarks,
+                    lags,
+                    variograms,
+                    models,
+                )
             outputs.append(output_path)
             LOGGER.info("Saved realization %03d to %s.", realization_index, output_path)
         return outputs
@@ -207,14 +291,14 @@ class SmmtPipeline:
         paired_mf: np.ndarray,
         neighbors: int,
         variable_names: list[str],
-    ) -> None:
+    ) -> np.ndarray | None:
         if self.config.skip_mapping:
             np.savez_compressed(
                 output_path,
                 coordinates=prediction_coordinates,
                 morphing_factors=simulated_mf,
             )
-            return
+            return None
 
         simulated_values = map_to_original_space(
             simulated_mf=simulated_mf,
@@ -222,6 +306,7 @@ class SmmtPipeline:
             landmarks=landmarks,
             paired_mf=paired_mf,
             neighbors=neighbors,
+            marginal_correction=self.config.marginal_correction,
         )
         np.savez_compressed(
             output_path,
@@ -229,6 +314,7 @@ class SmmtPipeline:
             values=simulated_values,
             variable_names=np.asarray(variable_names),
         )
+        return simulated_values
 
 
 def save_metadata(
@@ -236,6 +322,7 @@ def save_metadata(
     config: PipelineConfig,
     dataset: Dataset,
     models: list[VariogramModel],
+    landmark_count: int | None = None,
 ) -> None:
     """Persist configuration and fitted models as human-readable JSON."""
 
@@ -243,6 +330,8 @@ def save_metadata(
         "configuration": _json_safe(asdict(config)),
         "variables": dataset.variable_names,
         "grid": asdict(dataset.grid),
+        "input_sample_count": len(dataset.coordinates),
+        "landmark_count": landmark_count or len(dataset.coordinates),
         "variogram_models": [asdict(model) for model in models],
     }
     path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
@@ -256,4 +345,3 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_json_safe(item) for item in value]
     return value
-

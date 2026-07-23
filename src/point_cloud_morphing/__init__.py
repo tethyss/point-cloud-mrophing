@@ -8,6 +8,7 @@ from .data import (
     load_csv_dataset,
     select_landmarks,
 )
+from .diagnostics import DiagnosticWriter
 from .gslib import SgsimRunner, run_sgsim, write_gslib_data
 from .mapping import (
     LocalThinPlateSpline,
@@ -26,6 +27,7 @@ from .variogram import (
 
 __all__ = [
     "Dataset",
+    "DiagnosticWriter",
     "Grid",
     "LocalThinPlateSpline",
     "PipelineConfig",

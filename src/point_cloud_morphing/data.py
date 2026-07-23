@@ -18,6 +18,7 @@ def default_benchmark_input() -> Path:
     """Locate the benchmark conditioning file in known project locations."""
 
     candidates = (
+        Path("benchmark/bmdata/Conditioning_Data_6dim_Numpy.txt"),
         Path("benchmark/Conditioning_Data_6dim_Numpy.txt"),
         Path("2022-Morphing-master/Codes/Files/Conditioning_Data_6dim_Numpy.txt"),
     )
@@ -130,6 +131,10 @@ def select_landmarks(
         )
     if count > len(dataset.coordinates):
         raise ValueError("Landmark count exceeds the available input samples.")
+
+    if count == len(dataset.coordinates):
+        LOGGER.info("Using all %s input samples as landmarks.", count)
+        return dataset
 
     indices = generator.choice(len(dataset.coordinates), size=count, replace=False)
     LOGGER.info("Selected %s landmarks from %s input nodes.", count, len(dataset.coordinates))
