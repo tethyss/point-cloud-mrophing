@@ -9,8 +9,6 @@ Gaussian morphing factors using optimal transport, simulate factors independentl
 with GSLIB `sgsim`, then map them back to the original variable space using local
 thin-plate splines in logit space.
 
-> The `2022-Morphing-master/` directory is retained locally as the original
-> authors' reference implementation. The production entry point is `morphing.py`.
 
 ## Features
 
@@ -52,6 +50,8 @@ not distributed with this repository. Consequently, the project does not provide
 public reproduction test, benchmark run, or downloadable sample dataset at this
 time. The repository documents the method, software interface, and integration
 requirements only.
+
+Trial run on open-access data will be added in the future.
 
 ## CSV Input Contract
 
@@ -106,10 +106,13 @@ python -m py_compile morphing.py
 Please cite the original SMMT paper when using this implementation in approved
 work:
 
-> Avalos, S. and Ortiz, J. M. *Spatial Multivariate Morphing Transformation*.
+> Avalos, S. and Ortiz, J.M., 2023. Spatial multivariate morphing transformation. Mathematical Geosciences, 55(6), pp.735-771.
 
-The original authors' source code is included locally as a reference for scientific
-comparison. GSLIB is an external dependency and is not distributed by this project.
+or
+
+> Li, T. and Ortiz, J.M., 2022. Spatial multivariate morphing transformation on geochemical data augmentation1. Predictive Geometallurgy and Geostatistics Lab, p.119.
+
+GSLIB is an external dependency and is not distributed by this project.
 
 ## License
 
