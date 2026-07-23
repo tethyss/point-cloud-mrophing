@@ -1,7 +1,6 @@
 # Point Cloud Morphing
 
 [![CI](https://github.com/tethyss/point-cloud-mrophing/actions/workflows/ci.yml/badge.svg)](https://github.com/tethyss/point-cloud-mrophing/actions/workflows/ci.yml)
-[![Documentation](https://github.com/tethyss/point-cloud-mrophing/actions/workflows/pages.yml/badge.svg)](https://tethyss.github.io/point-cloud-mrophing/)
 
 Python implementation of the **Spatial Multivariate Morphing Transformation
 (SMMT)** for multivariate geostatistical simulation. It follows
@@ -22,8 +21,7 @@ thin-plate splines in logit space.
 - Persists realization outputs, OT pairings, fitted variograms, and run metadata
   for approved internal workflows.
 - Provides structured logs through `--log-level`.
-- Includes static code checks, issue forms, pull-request guidance, and a GitHub
-  Pages documentation site.
+- Includes static code checks, issue forms, and pull-request guidance.
 
 ## Requirements
 
@@ -102,9 +100,6 @@ Key options: `--dataset`, `--input`, `--variables`, `--landmarks`, `--pairings`,
 ruff check .
 python -m py_compile morphing.py
 ```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution expectations and
-[SECURITY.md](SECURITY.md) for responsible reporting guidance.
 
 ## Citation and Acknowledgement
 
