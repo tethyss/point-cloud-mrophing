@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="An implementation of Spatial Multivariate Morphing Transformation.">
+    <title>Point Cloud Morphing | SMMT</title>
+    <style>
+      :root { color-scheme: dark; --ink: #eaf2f4; --muted: #afc2c8; --accent: #44c8a1; --panel: #14272c; --bg: #07161b; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: radial-gradient(circle at top right, #123f43, var(--bg) 55%); color: var(--ink); font: 16px/1.6 system-ui, sans-serif; }
+      main { width: min(960px, calc(100% - 40px)); margin: auto; padding: 80px 0; }
+      .tag { color: var(--accent); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+      h1 { max-width: 850px; font-size: clamp(2.5rem, 7vw, 5.4rem); line-height: 1; margin: .2em 0; }
+      h2 { margin-top: 2.5em; font-size: 1.5rem; }
+      p, li { color: var(--muted); }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+      .card { padding: 20px; border: 1px solid #285158; border-radius: 12px; background: color-mix(in srgb, var(--panel) 88%, transparent); }
+      code { color: #baf5dc; background: #102126; padding: .15em .35em; border-radius: 4px; }
+      pre { overflow: auto; padding: 18px; border-radius: 10px; background: #061015; color: #baf5dc; }
+      a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="tag">Geostatistics · Optimal transport · GSLIB</div>
+      <h1>Spatial multivariate morphing for confidential simulation workflows.</h1>
+      <p>Point Cloud Morphing implements the Avalos–Ortiz SMMT workflow for independent Gaussian morphing-factor simulation and local multivariate reconstruction.</p>
+      <div class="grid">
+        <section class="card"><strong>1. Pair</strong><p>Use discrete optimal transport to pair empirical target CDFs with independent Gaussian morphing factors.</p></section>
+        <section class="card"><strong>2. Simulate</strong><p>Fit direct variograms to mean morphing factors and simulate each factor independently with SGSIM.</p></section>
+        <section class="card"><strong>3. Map</strong><p>Use local, spatially selected thin-plate splines in logit space to reconstruct original variables.</p></section>
+      </div>
+      <h2>Data access</h2>
+      <p>Operational datasets, parameterizations, and generated realizations are confidential. This public repository therefore does not provide a sample dataset, benchmark execution path, or reproduction test.</p>
+      <h2>Software interface</h2>
+      <pre>python -m pip install -e ".[dev]"
+smmt --help</pre>
+      <p>The repository documents the expected regular-grid CSV interface, GSLIB integration, and method architecture. Approved internal runs persist configuration metadata and outputs in a local result directory.</p>
+      <p>See the <a href="https://github.com/tethyss/point-cloud-mrophing">repository README</a> for input contracts, GSLIB setup, and contribution guidance.</p>
+    </main>
+  </body>
+</html>

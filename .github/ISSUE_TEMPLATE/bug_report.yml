@@ -1,0 +1,23 @@
+name: Bug report
+description: Report a reproducible problem in the SMMT workflow.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Include the complete error message and the command you ran.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Minimal reproducible input
+      description: Do not upload confidential datasets. Describe dimensions, variables, and grid spacing.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Environment
+      placeholder: Windows 11, Python 3.12, GSLIB 2.920
+    validations:
+      required: true

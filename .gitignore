@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+
+# IDEs and notebooks
+.idea/
+.ipynb_checkpoints/
+
+# Local datasets, executables, and generated simulation artifacts
+data.csv
+deposit.csv
+gslibexe/
+result/
+tmp/
+*.lprof
+
+# GSLIB runtime files
+*.dbg
+*.out
+*.par
