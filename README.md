@@ -118,5 +118,5 @@ comparison. GSLIB is an external dependency and is not distributed by this proje
 
 ## License
 
-No repository-wide license has been selected yet. Add an explicit license before
-redistributing or accepting external code contributions.
+This project is released under the [MIT License](LICENSE). Third-party software
+and reference implementations retain their respective licenses and notices.
